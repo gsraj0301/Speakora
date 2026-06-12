@@ -114,7 +114,7 @@
     </h1>
     
     <p class="text-[18px] md:text-[20px] text-[#4d4d4d] max-w-[640px] mx-auto mb-12 leading-relaxed">
-      Speakora is your personal AI presentation coach. Track filler words, posture, and eye contact in real-time — with zero video stored.
+      Speakora is your personal AI presentation coach. Track filler words, head position, and eye contact in real-time — with zero video stored.
     </p>
     
     <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -194,8 +194,8 @@
         <div class="w-10 h-10 rounded-lg bg-[#f5f5f5] flex items-center justify-center mb-6">
           <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
         </div>
-        <h3 class="text-[18px] font-semibold mb-2">Posture</h3>
-        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">MediaPipe tracks shoulder and neck tilt locally. No video is ever stored or uploaded.</p>
+        <h3 class="text-[18px] font-semibold mb-2">Head position</h3>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">We measure tilt, forward lean, and rotation. Keep your head level and engaged with the room.</p>
       </div>
 
       <!-- Eye Contact -->
@@ -204,25 +204,25 @@
           <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
         </div>
         <h3 class="text-[18px] font-semibold mb-2">Eye contact</h3>
-        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">Are you reading notes or engaging the room? We measure gaze direction instantly.</p>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">We track your iris position to see if you're looking at the camera — not at your notes.</p>
       </div>
 
-      <!-- Gestures -->
+      <!-- Facial Expression -->
       <div class="group p-8 rounded-2xl bg-white card-shadow hover:scale-[1.02] transition-transform duration-200">
         <div class="w-10 h-10 rounded-lg bg-[#f5f5f5] flex items-center justify-center mb-6">
-          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 10-3 0m3 5a1.5 1.5 0 01-3 0m0-5a1.5 1.5 0 10-3 0m3 5v-4m-3 4V11a1.5 1.5 0 00-3 0v4.5m0-4.5a1.5 1.5 0 10-3 0V15"></path></svg>
+          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
         </div>
-        <h3 class="text-[18px] font-semibold mb-2">Hand gestures</h3>
-        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">Find your natural rhythm. We detect gesture frequency to help you look more natural.</p>
+        <h3 class="text-[18px] font-semibold mb-2">Facial expression</h3>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">Smile detection via lip corner tracking. Presence isn't just words — it's how you look saying them.</p>
       </div>
 
-      <!-- Openness -->
+      <!-- Blink Rate -->
       <div class="group p-8 rounded-2xl bg-white card-shadow hover:scale-[1.02] transition-transform duration-200">
         <div class="w-10 h-10 rounded-lg bg-[#f5f5f5] flex items-center justify-center mb-6">
-          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
         </div>
-        <h3 class="text-[18px] font-semibold mb-2">Body openness</h3>
-        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">Open stance builds trust. We measure arm position to ensure you're projecting confidence.</p>
+        <h3 class="text-[18px] font-semibold mb-2">Blink rate</h3>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">Too few blinks = staring (uncomfortable). Too many = nervous. We find your natural rhythm.</p>
       </div>
     </div>
   </div>
