@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Presentation Coach{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+  <div class="max-w-4xl mx-auto p-4 sm:p-6">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 sm:mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-center sm:text-left">Practice History</h1>
+      <div class="flex items-center justify-center sm:justify-end gap-3">
+        <a href="/" class="text-gray-400 hover:text-white transition-colors text-sm">← Back to Home</a>
+        <a href="{% url 'coach' %}" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-semibold text-sm">+ New Practice</a>
+      </div>
+    </div>
+
+  {% if sessions|length == 0 %}
+    <p class="text-gray-400 text-center py-12">No practice sessions yet. <a href="{% url 'coach' %}" class="text-blue-400 underline">Start your first one.</a></p>
+  {% else %}
+    <div class="grid grid-cols-1 gap-6 mb-8">
+      <div class="bg-gray-800 p-4 rounded-lg">
+        <h2 class="text-lg font-semibold mb-3">Filler Words Over Time</h2>
+        <canvas id="fillerChart" height="80"></canvas>
+      </div>
+      <div class="bg-gray-800 p-4 rounded-lg">
+        <h2 class="text-lg font-semibold mb-3">Speaking Pace (WPM)</h2>
+        <canvas id="paceChart" height="80"></canvas>
+      </div>
+      <div class="bg-gray-800 p-4 rounded-lg">
+        <h2 class="text-lg font-semibold mb-3">Posture Score</h2>
+        <canvas id="postureChart" height="80"></canvas>
+      </div>
+    </div>
+
+    <!-- Improvement summary -->
+    {% with total=sessions|length %}
+      {% if total >= 2 %}
+        {% with first=sessions.first last=sessions.last %}
+        <div class="bg-gray-800 p-4 rounded-lg mb-8">
+          <h2 class="text-lg font-semibold mb-3">Improvement Summary</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <div>
+              <p class="text-gray-400 text-sm">Fillers</p>
+              <p class="text-xl font-bold {% if last.filler_word_count < first.filler_word_count %}text-green-400{% else %}text-red-400{% endif %}">
+                {{ first.filler_word_count }} → {{ last.filler_word_count }}
+              </p>
+            </div>
+            <div>
+              <p class="text-gray-400 text-sm">Pace</p>
+              <p class="text-xl font-bold {% if last.avg_pace_wpm >= first.avg_pace_wpm|add:-10 and last.avg_pace_wpm <= first.avg_pace_wpm|add:10 %}text-green-400{% else %}text-yellow-400{% endif %}">
+                {{ first.avg_pace_wpm|floatformat:0 }} → {{ last.avg_pace_wpm|floatformat:0 }} wpm
+              </p>
+            </div>
+            <div>
+              <p class="text-gray-400 text-sm">Posture</p>
+              <p class="text-xl font-bold {% if last.posture_score > first.posture_score %}text-green-400{% elif last.posture_score < first.posture_score %}text-red-400{% else %}text-gray-400{% endif %}">
+                {{ first.posture_score|floatformat:0 }}% → {{ last.posture_score|floatformat:0 }}%
+              </p>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Sessions table -->
+    <div class="bg-gray-800 rounded-lg overflow-x-auto">
+      <table class="w-full text-left min-w-[400px]">
+        <thead class="bg-gray-700">
+          <tr>
+            <th class="p-3">Date</th>
+            <th class="p-3">Duration</th>
+            <th class="p-3">Fillers</th>
+            <th class="p-3">Pace</th>
+            <th class="p-3">Posture</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in sessions %}
+          <tr class="border-t border-gray-700 hover:bg-gray-750">
+            <td class="p-3">{{ s.date|date:"M d, H:i" }}</td>
+            <td class="p-3">{{ s.duration_seconds|floatformat:0 }}s</td>
+            <td class="p-3">{{ s.filler_word_count }}</td>
+            <td class="p-3">{{ s.avg_pace_wpm|floatformat:0 }} wpm</td>
+            <td class="p-3">{{ s.posture_score|floatformat:0 }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  const sessions = {{ sessions_json|safe }};
+  if (sessions.length > 0) {
+    const labels = sessions.map(s => new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
+
+    function makeChart(id, label, dataKey, color, options) {
+      new Chart(document.getElementById(id), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data: sessions.map(s => s[dataKey]),
+            borderColor: color,
+            backgroundColor: color + '33',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#9ca3af', maxTicksLimit: 10 } },
+            y: { beginAtZero: true, ticks: { color: '#9ca3af' } }
+          },
+          ...options
+        }
+      });
+    }
+
+    makeChart('fillerChart', 'Fillers', 'filler_word_count', '#ef4444');
+    makeChart('paceChart', 'Pace (WPM)', 'avg_pace_wpm', '#3b82f6');
+    makeChart('postureChart', 'Posture Score', 'posture_score', '#22c55e', { scales: { y: { beginAtZero: true, max: 100, ticks: { color: '#9ca3af' } } } });
+  }
+</script>
+{% endblock %}

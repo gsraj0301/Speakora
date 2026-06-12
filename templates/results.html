@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}Session Results — Presentation Coach{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-slate-900 text-white">
+  <div class="max-w-3xl mx-auto px-4 py-8">
+    <!-- Back link -->
+    <a href="/" class="inline-flex items-center text-slate-400 text-sm hover:text-white transition-colors mb-8">
+      <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      Back home
+    </a>
+
+    <!-- Header card -->
+    <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <p id="rDate" class="text-slate-400 text-sm"></p>
+          <h1 class="text-2xl font-semibold text-white mt-1">Session Results</h1>
+        </div>
+        <div class="text-right">
+          <p class="text-slate-400 text-sm">Duration</p>
+          <p id="rDuration" class="text-xl font-semibold text-white">--</p>
+        </div>
+      </div>
+      <p id="rSummary" class="mt-4 text-base text-slate-300"></p>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
+        <div class="flex items-center gap-2 mb-2 sm:mb-3">
+          <span id="fillerDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
+          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Fillers</p>
+        </div>
+        <p id="rFillers" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">--</p>
+      </div>
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
+        <div class="flex items-center gap-2 mb-2 sm:mb-3">
+          <span id="paceDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
+          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Pace</p>
+        </div>
+        <p id="rPace" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">-- <span class="text-lg sm:text-2xl text-slate-400 font-normal">wpm</span></p>
+      </div>
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
+        <div class="flex items-center gap-2 mb-2 sm:mb-3">
+          <span id="postureDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
+          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Posture</p>
+        </div>
+        <p id="rPosture" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">--<span class="text-lg sm:text-2xl text-slate-400 font-normal">%</span></p>
+      </div>
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
+        <div class="flex items-center gap-2 mb-2 sm:mb-3">
+          <span id="eyeDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
+          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Eye Contact</p>
+        </div>
+        <p id="rEyeContact" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">--<span class="text-lg sm:text-2xl text-slate-400 font-normal">%</span></p>
+      </div>
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
+        <div class="flex items-center gap-2 mb-2 sm:mb-3">
+          <span id="gestureDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
+          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Gestures</p>
+        </div>
+        <p id="rGestures" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">-- <span class="text-lg sm:text-2xl text-slate-400 font-normal">/min</span></p>
+      </div>
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
+        <div class="flex items-center gap-2 mb-2 sm:mb-3">
+          <span id="opennessDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
+          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Openness</p>
+        </div>
+        <p id="rOpenness" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">--<span class="text-lg sm:text-2xl text-slate-400 font-normal">%</span></p>
+      </div>
+    </div>
+
+    <!-- Feedback panel -->
+    <div id="feedbackPanel" class="space-y-4 hidden">
+      <h2 class="text-lg font-semibold text-white">Coaching Feedback</h2>
+      <div id="strengthCard" class="rounded-xl border p-5 hidden">
+        <div class="flex items-center gap-2 mb-2">
+          <svg class="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <h3 class="font-semibold text-emerald-400 text-sm uppercase tracking-wide">Strength</h3>
+        </div>
+        <p id="strengthText" class="text-base text-slate-200 leading-relaxed"></p>
+      </div>
+      <div id="improveCard" class="rounded-xl border p-5 hidden">
+        <div class="flex items-center gap-2 mb-2">
+          <svg class="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+          <h3 class="font-semibold text-amber-400 text-sm uppercase tracking-wide">Improve</h3>
+        </div>
+        <p id="improveText" class="text-base text-slate-200 leading-relaxed"></p>
+      </div>
+      <div id="tipCard" class="rounded-xl border p-5 hidden">
+        <div class="flex items-center gap-2 mb-2">
+          <svg class="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <h3 class="font-semibold text-blue-400 text-sm uppercase tracking-wide">Tip</h3>
+        </div>
+        <p id="tipText" class="text-base text-slate-200 leading-relaxed"></p>
+      </div>
+      <!-- Fallback for non-standard messages -->
+      <div id="genericTipCard" class="rounded-xl border border-slate-600 p-5 hidden">
+        <p id="genericTipText" class="text-base text-slate-200 leading-relaxed"></p>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-8">
+      <a href="/practice/" class="bg-white text-slate-900 text-sm font-medium px-6 py-3 rounded-lg hover:opacity-90 transition-opacity text-center">Practice again</a>
+      <a href="/dashboard/" class="bg-slate-800 text-slate-200 text-sm font-medium px-6 py-3 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors text-center">View history</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const sessionData = {{ session_data_json|safe }};
+  const data = sessionData || JSON.parse(sessionStorage.getItem('sessionData'));
+  if (!data) document.body.innerHTML = '<div class="min-h-screen bg-slate-900 text-white flex items-center justify-center"><p class="text-slate-400">No session data found.</p></div>';
+
+  function fmtDate(iso) {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  }
+
+  function fmtDuration(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    if (m === 0) return s + 's';
+    return m + 'm ' + s + 's';
+  }
+
+  function dotColor(el, color) {
+    el.style.backgroundColor = color;
+  }
+
+  function summaryLine(data) {
+    const parts = [];
+    if (data.fillerCount > 15) parts.push('too many filler words');
+    else if (data.fillerCount > 5) parts.push('some filler words');
+    else parts.push('clean speech');
+    if (data.pace < 100) parts.push('speaking too slowly');
+    else if (data.pace > 180) parts.push('speaking too fast');
+    else if (data.pace > 0) parts.push('good pace');
+    if (data.postureScore < 60) parts.push('poor posture');
+    else if (data.postureScore < 80) parts.push('fair posture');
+    else if (data.postureScore > 0) parts.push('strong posture');
+    if (data.eyeContactScore < 60) parts.push('limited eye contact');
+    else if (data.eyeContactScore > 0) parts.push('good eye contact');
+    if (data.gesturesPerMinute < 5) parts.push('too still');
+    else if (data.gesturesPerMinute > 40) parts.push('excessive gesturing');
+    else if (data.gesturesPerMinute > 0) parts.push('good gestures');
+    if (data.opennessScore < 40) parts.push('closed stance');
+    else if (data.opennessScore > 0) parts.push('open stance');
+    return parts.length > 0 ? 'Session summary: ' + parts.join(', ') + '.' : '';
+  }
+
+  document.getElementById('rDate').textContent = data.date ? fmtDate(data.date) : '';
+  document.getElementById('rDuration').textContent = fmtDuration(data.duration);
+  document.getElementById('rSummary').textContent = summaryLine(data);
+
+  // Stats
+  document.getElementById('rFillers').textContent = data.fillerCount;
+  const fDot = document.getElementById('fillerDot');
+  if (data.fillerCount > 15) dotColor(fDot, '#ef4444');
+  else if (data.fillerCount > 5) dotColor(fDot, '#f59e0b');
+  else dotColor(fDot, '#34d399');
+
+  const paceVal = document.getElementById('rPace');
+  paceVal.innerHTML = data.pace + ' <span class="text-2xl text-slate-400 font-normal">wpm</span>';
+  const pDot = document.getElementById('paceDot');
+  if (data.pace > 0 && data.pace >= 120 && data.pace <= 150) dotColor(pDot, '#34d399');
+  else if (data.pace > 0 && ((data.pace >= 100 && data.pace < 120) || (data.pace > 150 && data.pace <= 180))) dotColor(pDot, '#f59e0b');
+  else if (data.pace > 0) dotColor(pDot, '#ef4444');
+  else dotColor(pDot, '#64748b');
+
+  document.getElementById('rPosture').textContent = data.postureScore + '%';
+  const poDot = document.getElementById('postureDot');
+  if (data.postureScore >= 80) dotColor(poDot, '#34d399');
+  else if (data.postureScore >= 60) dotColor(poDot, '#f59e0b');
+  else if (data.postureScore > 0) dotColor(poDot, '#ef4444');
+  else dotColor(poDot, '#64748b');
+
+  // Eye Contact
+  document.getElementById('rEyeContact').textContent = (data.eyeContactScore || 0) + '%';
+  const eDot = document.getElementById('eyeDot');
+  if (data.eyeContactScore >= 80) dotColor(eDot, '#34d399');
+  else if (data.eyeContactScore >= 60) dotColor(eDot, '#f59e0b');
+  else if (data.eyeContactScore > 0) dotColor(eDot, '#ef4444');
+  else dotColor(eDot, '#64748b');
+
+  // Gestures
+  const gestVal = document.getElementById('rGestures');
+  gestVal.innerHTML = (data.gesturesPerMinute || 0) + ' <span class="text-2xl text-slate-400 font-normal">/min</span>';
+  const gDot = document.getElementById('gestureDot');
+  if (data.gesturesPerMinute >= 10 && data.gesturesPerMinute <= 30) dotColor(gDot, '#34d399');
+  else if (data.gesturesPerMinute > 0 && ((data.gesturesPerMinute >= 5 && data.gesturesPerMinute < 10) || (data.gesturesPerMinute > 30 && data.gesturesPerMinute <= 40))) dotColor(gDot, '#f59e0b');
+  else if (data.gesturesPerMinute > 0) dotColor(gDot, '#ef4444');
+  else dotColor(gDot, '#64748b');
+
+  // Openness
+  document.getElementById('rOpenness').textContent = (data.opennessScore || 0) + '%';
+  const oDot = document.getElementById('opennessDot');
+  if (data.opennessScore >= 80) dotColor(oDot, '#34d399');
+  else if (data.opennessScore >= 40) dotColor(oDot, '#f59e0b');
+  else if (data.opennessScore > 0) dotColor(oDot, '#ef4444');
+  else dotColor(oDot, '#64748b');
+
+  // Feedback
+  if (data.tips && data.tips.length > 0 && data.tips[0]) {
+    document.getElementById('feedbackPanel').classList.remove('hidden');
+    const tipStr = data.tips.join('\n');
+
+    const strengthMatch = tipStr.match(/STRENGTH:\s*(.+?)(?:\n|$)/i);
+    const improveMatch = tipStr.match(/IMPROVE:\s*(.+?)(?:\n|$)/i);
+    const tipMatch = tipStr.match(/TIP:\s*(.+?)(?:\n|$)/i);
+
+    if (strengthMatch || improveMatch || tipMatch) {
+      if (strengthMatch) {
+        document.getElementById('strengthCard').classList.remove('hidden');
+        document.getElementById('strengthCard').classList.add('border-emerald-500/30', 'bg-emerald-500/5');
+        document.getElementById('strengthText').textContent = strengthMatch[1];
+      }
+      if (improveMatch) {
+        document.getElementById('improveCard').classList.remove('hidden');
+        document.getElementById('improveCard').classList.add('border-amber-500/30', 'bg-amber-500/5');
+        document.getElementById('improveText').textContent = improveMatch[1];
+      }
+      if (tipMatch) {
+        document.getElementById('tipCard').classList.remove('hidden');
+        document.getElementById('tipCard').classList.add('border-blue-500/30', 'bg-blue-500/5');
+        document.getElementById('tipText').textContent = tipMatch[1];
+      }
+    } else {
+      document.getElementById('genericTipCard').classList.remove('hidden');
+      document.getElementById('genericTipCard').classList.add('border-slate-600');
+      document.getElementById('genericTipText').textContent = tipStr;
+    }
+  }
+</script>
+{% endblock %}
