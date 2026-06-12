@@ -3,3 +3,11 @@ __pycache__
 db.sqlite3
 .env
 staticfiles
+deploy.py
+package.json
+tailwind.config.js
+static/css/input.css
+AGENTS.md
+PROJECT_STATUS.md
+DESIGN-vercel.md
+README_MAKER.md
