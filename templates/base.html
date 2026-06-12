@@ -3,11 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Presentation Coach{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/tailwind.css">
+  <title>{% block title %}Speakora{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ds-gray-100: #fafafa;
+      --ds-gray-200: #eaeaea;
+      --ds-gray-300: #999;
+      --ds-gray-400: #888;
+      --ds-gray-1000: #171717;
+      --ds-background: #fff;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-gray-950 text-white min-h-screen">
+<body class="bg-[#fafafa] text-[#171717] min-h-screen">
   {% block content %}{% endblock %}
 </body>
 </html>

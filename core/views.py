@@ -88,6 +88,9 @@ def results_page(request):
             'eyeContactScore': session.eye_contact_score,
             'gesturesPerMinute': session.gestures_per_minute,
             'opennessScore': session.openness_score,
+            'smileScore': session.smile_score,
+            'blinkRate': session.blink_rate,
+            'mouthOpenness': session.mouth_openness,
             'tips': tips_list,
             'transcript': session.transcript
         })
@@ -109,6 +112,9 @@ def save_session(request):
         eye_contact_score=body.get('eyeContactScore', 0),
         gestures_per_minute=body.get('gesturesPerMinute', 0),
         openness_score=body.get('opennessScore', 0),
+        smile_score=body.get('smileScore', 0),
+        blink_rate=body.get('blinkRate', 0),
+        mouth_openness=body.get('mouthOpenness', 0),
         feedback_text='\n'.join(body.get('tips', [])),
         transcript=body.get('transcript', '')
     )
@@ -125,10 +131,11 @@ Session data:
 - Transcript: {body.get('transcript', '')}
 - Filler words used: {body.get('filler_count', 0)} times
 - Speaking pace: {body.get('pace', 0)} wpm (ideal range: 120-150 wpm)
-- Posture score: {body.get('posture_score', 0)}/100
+- Head position score: {body.get('posture_score', 0)}/100
 - Eye contact: {body.get('eye_contact', 0)}% of time looking at camera
-- Hand gestures: {body.get('gesture_rate', 0)} movements per minute (ideal: 10-30/min)
-- Body openness: {body.get('openness', 0)}% of time in open stance
+- Positive facial expression (smile): {body.get('expression', 0)}% of time
+- Blink rate: {body.get('blink_rate', 0)} blinks per minute (typical range: 10-20/min)
+- Mouth openness: {body.get('mouth_openness', 0)} (higher = clearer articulation, lower = mumbling)
 
 Give feedback in exactly this structure:
 
@@ -140,10 +147,12 @@ Rules:
 - Be direct and honest, not just encouraging.
 - If filler count > 10, that is the priority issue.
 - If pace < 100 or > 180, flag it.
-- If posture < 60, mention it.
+- If head position < 60, suggest sitting up straighter.
 - If eye contact < 60%, mention looking at camera more.
-- If gesture rate < 5 or > 40, suggest adjusting hand movement.
-- If openness < 40%, suggest uncrossing arms.
+- If expression < 40%, suggest showing more facial engagement.
+- If blink rate > 25, suggest relaxation techniques.
+- If blink rate < 5, suggest being more expressive.
+- If mouth openness is low, suggest articulating more clearly.
 - Never repeat the same point across sections.
 - Total response: 3 lines maximum, one per section."""
     resp = requests.post(
@@ -167,7 +176,7 @@ def dashboard(request):
     sessions = PracticeSession.objects.filter(student_id=request.user.username).order_by('date')
     sessions_json = json.dumps(list(sessions.values(
         'id', 'date', 'duration_seconds', 'filler_word_count', 'avg_pace_wpm', 'posture_score',
-        'eye_contact_score', 'gestures_per_minute', 'openness_score'
+        'eye_contact_score', 'gestures_per_minute', 'openness_score', 'smile_score', 'blink_rate', 'mouth_openness'
     )), cls=DjangoJSONEncoder)
     return render(request, 'dashboard.html', {
         'sessions': sessions,

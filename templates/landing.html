@@ -1,137 +1,284 @@
 {% extends 'base.html' %}
-{% block title %}Presentation Coach{% endblock %}
+{% block title %}Speakora — Turn nerves into presence.{% endblock %}
 {% block extra_head %}
 <style>
   .mesh-gradient {
-    background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(0, 124, 240, 0.15), transparent),
-                radial-gradient(ellipse 60% 50% at 30% 30%, rgba(121, 40, 202, 0.10), transparent),
-                radial-gradient(ellipse 60% 50% at 70% 20%, rgba(255, 0, 128, 0.08), transparent),
-                radial-gradient(ellipse 50% 40% at 50% 60%, rgba(0, 223, 216, 0.06), transparent);
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 100vh;
+    z-index: -1;
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+      radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+      radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+    background-color: #ffffff;
+    opacity: 0.15;
+    filter: blur(100px);
+  }
+  
+  /* Vercel Mesh Gradient Inspired */
+  .vercel-mesh {
+    position: absolute;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140%;
+    height: 100%;
+    z-index: -1;
+    background: radial-gradient(circle at 50% 50%, #007cf0 0%, transparent 50%),
+                radial-gradient(circle at 20% 40%, #00dfd8 0%, transparent 40%),
+                radial-gradient(circle at 80% 40%, #7928ca 0%, transparent 40%),
+                radial-gradient(circle at 50% 20%, #ff0080 0%, transparent 40%);
+    filter: blur(80px);
+    opacity: 0.15;
+  }
+
+  .nav-blur {
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.8);
+    border-bottom: 1px solid #ebebeb;
+  }
+
+  h1 { letter-spacing: -2.4px; }
+  h2 { letter-spacing: -1.28px; }
+  
+  .card-shadow {
+    box-shadow: 0px 1px 1px rgba(0,0,0,0.02), 0px 2px 2px rgba(0,0,0,0.04), 0px 8px 8px -8px rgba(0,0,0,0.04);
+    border: 1px solid #ebebeb;
+  }
+  
+  .btn-ink {
+    background: #171717;
+    color: white;
+    transition: all 0.2s ease;
+  }
+  .btn-ink:hover {
+    background: #000;
+    transform: translateY(-1px);
+  }
+  
+  .btn-ghost {
+    background: white;
+    color: #171717;
+    border: 1px solid #ebebeb;
+    transition: all 0.2s ease;
+  }
+  .btn-ghost:hover {
+    background: #fafafa;
+    border-color: #a1a1a1;
+  }
+
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #ebebeb, transparent);
   }
 </style>
 {% endblock %}
+
 {% block content %}
-<!-- Nav -->
-<nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200">
-  <div class="max-w-7xl mx-auto flex items-center justify-between h-16 px-6">
-    <a href="/" class="text-neutral-900 font-semibold text-lg tracking-tight">Speakora</a>
+<div class="vercel-mesh"></div>
+
+<!-- Navigation -->
+<nav class="sticky top-0 z-50 nav-blur">
+  <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-8">
+      <a href="/" class="text-[20px] font-semibold tracking-tight text-[#171717]">Speakora</a>
+      <div class="hidden md:flex items-center gap-6">
+        <a href="#how-it-works" class="text-[14px] text-[#888] hover:text-[#171717] transition-colors">How it works</a>
+        <a href="#features" class="text-[14px] text-[#888] hover:text-[#171717] transition-colors">Features</a>
+      </div>
+    </div>
     <div class="flex items-center gap-3">
       {% if user.is_authenticated %}
-        <a href="/dashboard/" class="text-neutral-600 text-sm px-3 py-1.5 rounded-full hover:bg-neutral-100 transition-colors">Dashboard</a>
-        <a href="/logout/" class="text-neutral-600 text-sm px-3 py-1.5 rounded-full hover:bg-neutral-100 transition-colors">Log out</a>
+        <a href="/dashboard/" class="text-[14px] font-medium text-[#171717] px-4 py-1.5 rounded-full hover:bg-gray-100 transition-colors">Dashboard</a>
+        <a href="/logout/" class="text-[14px] font-medium text-[#171717] px-4 py-1.5 rounded-full border border-[#ebebeb] hover:border-[#a1a1a1] transition-colors">Log out</a>
       {% else %}
-        <a href="/login/" class="text-neutral-600 text-sm px-3 py-1.5 rounded-full hover:bg-neutral-100 transition-colors">Log in</a>
-        <a href="/register/" class="bg-neutral-900 text-white text-sm font-medium px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">Register</a>
+        <a href="/login/" class="text-[14px] font-medium text-[#171717] px-4 py-1.5 rounded-full hover:bg-gray-100 transition-colors">Log in</a>
+        <a href="/register/" class="text-[14px] font-medium bg-[#171717] text-white px-4 py-1.5 rounded-md hover:bg-black transition-colors">Sign up</a>
       {% endif %}
-      <a href="/practice/" class="bg-neutral-900 text-white text-sm font-medium px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">Start Practice</a>
     </div>
   </div>
 </nav>
 
-<!-- Hero -->
-<section class="relative overflow-hidden bg-neutral-50">
-  <div class="mesh-gradient absolute inset-0 pointer-events-none"></div>
-  <div class="relative max-w-7xl mx-auto px-6 py-24 md:py-32 text-center">
-    <span class="inline-block text-neutral-500 text-xs font-mono tracking-wide uppercase mb-6 border border-neutral-200 rounded-full px-3 py-1 bg-white">AI-Powered</span>
-    <h1 class="text-neutral-900 text-4xl sm:text-6xl font-semibold leading-tight md:leading-tight -tracking-[0.04em] md:-tracking-[0.05em] max-w-3xl mx-auto">
-      Stop saying "um."
+<!-- Hero Section -->
+<section class="relative pt-32 pb-24 px-6 overflow-hidden">
+  <div class="max-w-[1200px] mx-auto text-center">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#f5f5f5] border border-[#ebebeb] mb-8">
+      <span class="mono text-[11px] font-medium text-[#888] uppercase tracking-wider">AI-Powered</span>
+      <div class="w-1 h-1 rounded-full bg-[#0070f3]"></div>
+      <span class="text-[12px] font-medium text-[#4d4d4d]">v1.0 is now live</span>
+    </div>
+    
+    <h1 class="text-[64px] md:text-[80px] font-semibold text-[#171717] leading-[1.1] mb-8">
+      Practice out loud.<br>
+      <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#007cf0] to-[#00dfd8]">Get better fast.</span>
     </h1>
-    <p class="text-neutral-400 text-sm sm:text-base md:text-lg mt-4 font-mono tracking-tight px-4">Speakora — turning nerves into presence</p>
-    <p class="text-neutral-600 text-base sm:text-lg md:text-xl mt-6 max-w-xl mx-auto leading-relaxed px-4">
-      Speakora watches you practice and tells you exactly what to fix — filler words, pace, posture, eye contact, gestures. Real feedback, not just a grade.
+    
+    <p class="text-[18px] md:text-[20px] text-[#4d4d4d] max-w-[640px] mx-auto mb-12 leading-relaxed">
+      Speakora is your personal AI presentation coach. Track filler words, posture, and eye contact in real-time — with zero video stored.
     </p>
-    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 sm:mt-10">
-      <a href="/practice/" class="bg-neutral-900 text-white text-sm sm:text-base font-medium px-6 sm:px-8 py-3 rounded-full hover:opacity-90 transition-opacity shadow-sm w-full sm:w-auto text-center">
-        Start practicing
+    
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="/practice/" class="btn-ink px-10 py-4 rounded-full text-[16px] font-medium shadow-lg shadow-gray-200">
+        Start practicing free
       </a>
       {% if user.is_authenticated %}
-        <a href="/dashboard/" class="bg-white text-neutral-900 text-sm sm:text-base font-medium px-6 sm:px-8 py-3 rounded-full border border-neutral-200 shadow-sm hover:shadow transition-shadow w-full sm:w-auto text-center">
-          View dashboard
+        <a href="/dashboard/" class="btn-ghost px-10 py-4 rounded-full text-[16px] font-medium">
+          View your progress
         </a>
       {% endif %}
     </div>
   </div>
 </section>
 
-<!-- How it works -->
-<section class="bg-white py-24">
-  <div class="max-w-7xl mx-auto px-6 text-center">
-    <span class="inline-block text-neutral-500 text-xs font-mono tracking-wide uppercase mb-2 border border-neutral-200 rounded-full px-3 py-1">How it works</span>
-    <h2 class="text-neutral-900 text-2xl sm:text-3xl font-semibold tracking-tight mt-6 px-4">Three steps to a better presentation</h2>
-    <div class="grid md:grid-cols-3 gap-8 md:gap-12 mt-10 md:mt-16 text-left">
-      <div>
-        <div class="text-neutral-900 text-2xl font-bold mb-2">01</div>
-        <h3 class="text-neutral-900 text-lg font-semibold">Open your camera and start talking</h3>
-        <p class="text-neutral-600 text-sm mt-2 leading-relaxed">Open your camera and start talking for a couple of minutes. We watch, you focus on speaking.</p>
+<div class="section-divider"></div>
+
+<!-- How it Works -->
+<section id="how-it-works" class="py-24 px-6">
+  <div class="max-w-[1200px] mx-auto">
+    <div class="mb-16">
+      <span class="mono text-[12px] text-[#888] uppercase tracking-[0.2em] mb-4 block">The Process</span>
+      <h2 class="text-[32px] md:text-[40px] font-semibold text-[#171717]">Three sessions is all it takes.</h2>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="p-8 rounded-2xl bg-white card-shadow">
+        <div class="mono text-[12px] text-[#0070f3] mb-6">01 — SPEAK</div>
+        <h3 class="text-[20px] font-semibold mb-4">Open camera and talk.</h3>
+        <p class="text-[#4d4d4d] leading-relaxed">No setup. Just hit start and present like you normally would. We analyze silently in the background.</p>
       </div>
-      <div>
-        <div class="text-neutral-900 text-2xl font-bold mb-2">02</div>
-        <h3 class="text-neutral-900 text-lg font-semibold">Hit "Get Feedback"</h3>
-        <p class="text-neutral-600 text-sm mt-2 leading-relaxed">AI breaks down what went well and what's holding you back.</p>
+      
+      <div class="p-8 rounded-2xl bg-white card-shadow">
+        <div class="mono text-[12px] text-[#7928ca] mb-6">02 — ANALYZE</div>
+        <h3 class="text-[20px] font-semibold mb-4">Get AI feedback.</h3>
+        <p class="text-[#4d4d4d] leading-relaxed">Groq AI processes your stats instantly. What went well, what to fix, and one drill to improve today.</p>
       </div>
-      <div>
-        <div class="text-neutral-900 text-2xl font-bold mb-2">03</div>
-        <h3 class="text-neutral-900 text-lg font-semibold">Come back tomorrow</h3>
-        <p class="text-neutral-600 text-sm mt-2 leading-relaxed">Your dashboard shows if you're actually improving.</p>
+      
+      <div class="p-8 rounded-2xl bg-white card-shadow">
+        <div class="mono text-[12px] text-[#ff4d4d] mb-6">03 — IMPROVE</div>
+        <h3 class="text-[20px] font-semibold mb-4">Track progress.</h3>
+        <p class="text-[#4d4d4d] leading-relaxed">Your dashboard keeps history. Watch your filler count drop and your confidence grow session by session.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Features -->
-<section class="bg-neutral-50 pb-24">
-  <div class="max-w-7xl mx-auto px-6">
-    <div class="grid md:grid-cols-3 gap-4">
-      <!-- Card 1 -->
-      <div class="bg-white rounded-lg p-6 border border-neutral-200 shadow-sm">
-        <div class="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center mb-4">
-          <svg class="w-5 h-5 text-neutral-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-          </svg>
+<!-- Features Grid -->
+<section id="features" class="py-24 px-6 bg-[#fafafa]">
+  <div class="max-w-[1200px] mx-auto">
+    <div class="mb-16 text-center">
+      <span class="mono text-[12px] text-[#888] uppercase tracking-[0.2em] mb-4 block">Capabilities</span>
+      <h2 class="text-[32px] md:text-[40px] font-semibold text-[#171717]">Six things your professor<br>notices but won't tell you.</h2>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Filler Words -->
+      <div class="group p-8 rounded-2xl bg-white card-shadow hover:scale-[1.02] transition-transform duration-200">
+        <div class="w-10 h-10 rounded-lg bg-[#f5f5f5] flex items-center justify-center mb-6">
+          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
         </div>
-        <h3 class="text-neutral-900 text-lg font-semibold tracking-tight">You say "like" 40 times. Now you know.</h3>
-        <p class="text-neutral-600 text-sm mt-2 leading-relaxed">
-          Tracks um, uh, like, and more in real time. Know exactly which crutch words to cut.
-        </p>
+        <h3 class="text-[18px] font-semibold mb-2">Filler words</h3>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">Real-time detection of um, uh, like, and you know. Stop counting on your fingers.</p>
       </div>
-      <!-- Card 2 -->
-      <div class="bg-white rounded-lg p-6 border border-neutral-200 shadow-sm">
-        <div class="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center mb-4">
-          <svg class="w-5 h-5 text-neutral-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-          </svg>
+
+      <!-- Pace -->
+      <div class="group p-8 rounded-2xl bg-white card-shadow hover:scale-[1.02] transition-transform duration-200">
+        <div class="w-10 h-10 rounded-lg bg-[#f5f5f5] flex items-center justify-center mb-6">
+          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
         </div>
-        <h3 class="text-neutral-900 text-lg font-semibold tracking-tight">Are you slouching? We'll tell you.</h3>
-        <p class="text-neutral-600 text-sm mt-2 leading-relaxed">
-          MediaPipe tracks your skeleton — shoulder tilt, neck angle, speaking pace — all locally.
-        </p>
+        <h3 class="text-[18px] font-semibold mb-2">Speaking pace</h3>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">We flag when you drift outside the ideal 120–150 wpm. Keep your audience engaged.</p>
       </div>
-      <!-- Card 3 -->
-      <div class="bg-white rounded-lg p-6 border border-neutral-200 shadow-sm">
-        <div class="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center mb-4">
-          <svg class="w-5 h-5 text-neutral-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-          </svg>
+
+      <!-- Posture -->
+      <div class="group p-8 rounded-2xl bg-white card-shadow hover:scale-[1.02] transition-transform duration-200">
+        <div class="w-10 h-10 rounded-lg bg-[#f5f5f5] flex items-center justify-center mb-6">
+          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
         </div>
-        <h3 class="text-neutral-900 text-lg font-semibold tracking-tight">One click. Honest feedback. No sugarcoating.</h3>
-        <p class="text-neutral-600 text-sm mt-2 leading-relaxed">
-          Groq LLM analyzes your session and gives actionable tips. One click, instant advice.
-        </p>
+        <h3 class="text-[18px] font-semibold mb-2">Posture</h3>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">MediaPipe tracks shoulder and neck tilt locally. No video is ever stored or uploaded.</p>
+      </div>
+
+      <!-- Eye Contact -->
+      <div class="group p-8 rounded-2xl bg-white card-shadow hover:scale-[1.02] transition-transform duration-200">
+        <div class="w-10 h-10 rounded-lg bg-[#f5f5f5] flex items-center justify-center mb-6">
+          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+        </div>
+        <h3 class="text-[18px] font-semibold mb-2">Eye contact</h3>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">Are you reading notes or engaging the room? We measure gaze direction instantly.</p>
+      </div>
+
+      <!-- Gestures -->
+      <div class="group p-8 rounded-2xl bg-white card-shadow hover:scale-[1.02] transition-transform duration-200">
+        <div class="w-10 h-10 rounded-lg bg-[#f5f5f5] flex items-center justify-center mb-6">
+          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 10-3 0m3 5a1.5 1.5 0 01-3 0m0-5a1.5 1.5 0 10-3 0m3 5v-4m-3 4V11a1.5 1.5 0 00-3 0v4.5m0-4.5a1.5 1.5 0 10-3 0V15"></path></svg>
+        </div>
+        <h3 class="text-[18px] font-semibold mb-2">Hand gestures</h3>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">Find your natural rhythm. We detect gesture frequency to help you look more natural.</p>
+      </div>
+
+      <!-- Openness -->
+      <div class="group p-8 rounded-2xl bg-white card-shadow hover:scale-[1.02] transition-transform duration-200">
+        <div class="w-10 h-10 rounded-lg bg-[#f5f5f5] flex items-center justify-center mb-6">
+          <svg class="w-5 h-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+        </div>
+        <h3 class="text-[18px] font-semibold mb-2">Body openness</h3>
+        <p class="text-[14px] text-[#4d4d4d] leading-relaxed">Open stance builds trust. We measure arm position to ensure you're projecting confidence.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-32 px-6 overflow-hidden relative">
+  <div class="max-w-[800px] mx-auto text-center relative z-10">
+    <h2 class="text-[40px] md:text-[56px] font-semibold text-[#171717] leading-tight mb-8">
+      Your next presentation is in two weeks. <span class="text-[#888]">Start now.</span>
+    </h2>
+    <p class="text-[18px] text-[#4d4d4d] mb-12">Free, no setup, runs in your browser. Just open your camera and talk.</p>
+    <a href="/practice/" class="btn-ink px-12 py-5 rounded-full text-[18px] font-medium inline-block">
+      Start practicing free
+    </a>
   </div>
 </section>
 
 <!-- Footer -->
-<footer class="bg-white border-t border-neutral-200">
-  <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center gap-2 sm:gap-0 sm:justify-between text-xs sm:text-sm text-neutral-500 text-center sm:text-left">
-    <span>Speakora</span>
-    <span class="max-w-xs sm:max-w-none">Built by Raj G for students who hate being told to "just be confident."</span>
-    {% if user.is_authenticated %}
-      <a href="/dashboard/" class="hover:text-neutral-900 transition-colors">Dashboard</a>
-    {% else %}
-      <a href="/login/" class="hover:text-neutral-900 transition-colors">Log in</a>
-    {% endif %}
+<footer class="py-24 px-6 border-t border-[#ebebeb] bg-white">
+  <div class="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+    <div class="col-span-1 md:col-span-2">
+      <a href="/" class="text-[20px] font-semibold tracking-tight text-[#171717] mb-6 block">Speakora</a>
+      <p class="text-[#888] text-[14px] leading-relaxed max-w-[320px]">
+        Built for students who hate being told to "just be confident." Turning nerves into presence.
+      </p>
+    </div>
+    
+    <div>
+      <h4 class="mono text-[11px] text-[#171717] uppercase tracking-widest mb-6">Platform</h4>
+      <ul class="space-y-4">
+        <li><a href="/practice/" class="text-[14px] text-[#888] hover:text-[#171717] transition-colors">Start Practice</a></li>
+        <li><a href="/dashboard/" class="text-[14px] text-[#888] hover:text-[#171717] transition-colors">Dashboard</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <h4 class="mono text-[11px] text-[#171717] uppercase tracking-widest mb-6">Account</h4>
+      <ul class="space-y-4">
+        {% if user.is_authenticated %}
+          <li><a href="/logout/" class="text-[14px] text-[#888] hover:text-[#171717] transition-colors">Log out</a></li>
+        {% else %}
+          <li><a href="/login/" class="text-[14px] text-[#888] hover:text-[#171717] transition-colors">Log in</a></li>
+          <li><a href="/register/" class="text-[14px] text-[#888] hover:text-[#171717] transition-colors">Sign up</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+  
+  <div class="max-w-[1200px] mx-auto mt-24 pt-8 border-t border-[#f5f5f5] flex items-center justify-between">
+    <p class="text-[12px] text-[#888]">© 2026 Speakora. Built with care by Raj G.</p>
+    <div class="flex items-center gap-6">
+      <a href="#" class="text-[12px] text-[#888] hover:text-[#171717]">Privacy</a>
+      <a href="#" class="text-[12px] text-[#888] hover:text-[#171717]">Terms</a>
+    </div>
   </div>
 </footer>
+
 {% endblock %}

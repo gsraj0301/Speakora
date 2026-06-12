@@ -14,11 +14,22 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from pathlib import Path
 from django.contrib import admin
 from django.urls import path
+from django.http import HttpResponse, Http404
 from core import views
 
+def favicon(request):
+    try:
+        data = (Path(__file__).resolve().parent.parent / 'static' / 'favicon.svg').read_bytes()
+        return HttpResponse(data, content_type='image/svg+xml')
+    except:
+        raise Http404()
+
 urlpatterns = [
+    path('robots.txt', lambda r: HttpResponse('User-agent: *\nDisallow:\n', content_type='text/plain')),
+    path('favicon.ico', favicon),
     path('admin/', admin.site.urls),
     path('', views.landing_page, name='landing'),
     path('practice/', views.coach_page, name='coach'),

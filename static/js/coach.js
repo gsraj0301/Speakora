@@ -4,7 +4,7 @@ const sessionState = {
   postureScores: [],
   frameCount: 0,
   lastVideoTime: -1,
-  poseLandmarker: null,
+  faceLandmarker: null,
   mediaRecorder: null,
   audioChunks: [],
   transcript: '',
@@ -19,9 +19,12 @@ const sessionState = {
   webSpeechFailed: false,
   eyeContactFrames: 0,
   totalFrames: 0,
-  gestureCount: 0,
-  lastWristPos: null,
-  openFrames: 0,
+  smileFrames: 0,
+  blinkCount: 0,
+  lastBlinkState: false,
+  baselineBrowY: null,
+  eyebrowRaiseCount: 0,
+  mouthOpennessValues: [],
   showVideo: false
 };
 
@@ -161,21 +164,23 @@ async function init() {
     statusEl.textContent = 'Starting camera...';
     const stream = await startWebcam();
     const video = document.getElementById('webcam');
-    statusEl.textContent = 'Loading pose detection... (first load may take 10s)';
+    statusEl.textContent = 'Loading face detection... (first load may take 10s)';
 
     const vision = await import(MP_CDN);
-    const { PoseLandmarker, FilesetResolver, DrawingUtils } = vision;
+    const { FaceLandmarker, FilesetResolver, DrawingUtils } = vision;
 
     const filesetResolver = await FilesetResolver.forVisionTasks(`${MP_CDN}/wasm`);
-    sessionState.poseLandmarker = await PoseLandmarker.createFromOptions(filesetResolver, {
+    sessionState.faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
       baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
         delegate: "GPU"
       },
-      runningMode: 'VIDEO'
+      runningMode: 'VIDEO',
+      outputFaceBlendshapes: false,
+      refineLandmarks: true
     });
     statusEl.classList.add('hidden');
-    detectLoop(video, DrawingUtils, PoseLandmarker);
+    detectLoop(video, DrawingUtils, FaceLandmarker);
     sessionState.startTime = Date.now();
     sessionState.paceInterval = setInterval(updatePace, 5000);
     sessionState.timerInterval = setInterval(updateTimer, 1000);
@@ -195,7 +200,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
   init();
 });
 
-function detectLoop(video, DrawingUtils, PoseLandmarker) {
+function detectLoop(video, DrawingUtils, FaceLandmarker) {
   const canvas = document.getElementById('pose-canvas');
   const ctx = canvas.getContext('2d');
   canvas.width = video.videoWidth;
@@ -207,7 +212,7 @@ function detectLoop(video, DrawingUtils, PoseLandmarker) {
   function detect() {
     if (video.currentTime !== sessionState.lastVideoTime) {
       sessionState.lastVideoTime = video.currentTime;
-      const result = sessionState.poseLandmarker.detectForVideo(video, performance.now());
+      const result = sessionState.faceLandmarker.detectForVideo(video, performance.now());
 
       if (sessionState.showVideo) {
         ctx.save();
@@ -231,18 +236,20 @@ function detectLoop(video, DrawingUtils, PoseLandmarker) {
       ctx.translate(-canvas.width, 0);
       if (result.landmarks && result.landmarks[0]) {
         const landmarks = result.landmarks[0];
-        drawingUtils.drawConnectors(landmarks, PoseLandmarker.POSE_CONNECTIONS, {
-          color: "#00e5ff", lineWidth: 2
+        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_CONTOURS, {
+          color: "#00e5ff", lineWidth: 1
         });
-        drawingUtils.drawLandmarks(landmarks, { color: "#00b8d4", lineWidth: 1.5 });
+        drawingUtils.drawLandmarks(landmarks, { color: "#00b8d4", lineWidth: 0.8 });
 
         sessionState.frameCount++;
         if (sessionState.frameCount % 30 === 0) {
-          analyzePosture(landmarks);
+          sessionState.postureScores.push(analyzeHeadPosition(landmarks));
           if (analyzeEyeContact(landmarks)) sessionState.eyeContactFrames++;
+          if (analyzeExpression(landmarks)) sessionState.smileFrames++;
+          analyzeMouthOpenness(landmarks);
+          analyzeBlink(landmarks);
+          analyzeEyebrowRaise(landmarks);
           sessionState.totalFrames++;
-          analyzeGestures(landmarks);
-          if (analyzeOpenness(landmarks)) sessionState.openFrames++;
         }
       }
       ctx.restore();
@@ -252,48 +259,85 @@ function detectLoop(video, DrawingUtils, PoseLandmarker) {
   detect();
 }
 
-function analyzePosture(landmarks) {
-  const ls = landmarks[11], rs = landmarks[12];
-  const le = landmarks[7], re = landmarks[8];
-  const shoulderTilt = Math.abs(ls.y - rs.y);
-  const angleRadL = Math.atan2(ls.y - le.y, ls.x - le.x);
-  const angleRadR = Math.atan2(rs.y - re.y, rs.x - re.x);
-  const neckTilt = Math.abs(angleRadL - angleRadR) * 180 / Math.PI;
+function analyzeHeadPosition(landmarks) {
+  const nose = landmarks[4], chin = landmarks[152];
+  const lEar = landmarks[234], rEar = landmarks[454];
 
   let score = 100;
-  if (shoulderTilt > 0.05) score -= 10;
-  if (neckTilt > 30) score -= 15;
-  if (score < 0) score = 0;
+  const headAngle = Math.atan2(Math.abs(nose.x - chin.x), chin.y - nose.y) * 180 / Math.PI;
+  if (headAngle > 20) score -= 15;
 
-  sessionState.postureScores.push(score);
+  const earY = (lEar.y + rEar.y) / 2;
+  const noseDrop = nose.y - earY;
+  if (noseDrop > 0.08) score -= 10;
+
+  const noseOffset = Math.abs(nose.x - 0.5);
+  if (noseOffset > 0.1) score -= 10;
+
+  return Math.max(0, score);
 }
 
 function analyzeEyeContact(landmarks) {
-  const nose = landmarks[0];
-  const horizontalDrift = Math.abs(nose.x - 0.5);
-  const verticalDrift = nose.y;
-  if (horizontalDrift > 0.08) return false;
-  if (verticalDrift > 0.55) return false;
-  return true;
+  const lIris = landmarks[468], rIris = landmarks[473];
+  const lEyeInner = landmarks[133], lEyeOuter = landmarks[33];
+  const rEyeInner = landmarks[263], rEyeOuter = landmarks[362];
+
+  const lEyeWidth = Math.hypot(lEyeInner.x - lEyeOuter.x, lEyeInner.y - lEyeOuter.y);
+  const rEyeWidth = Math.hypot(rEyeInner.x - rEyeOuter.x, rEyeInner.y - rEyeOuter.y);
+
+  if (lEyeWidth < 0.01 || rEyeWidth < 0.01) return false;
+
+  const lIrisOffset = Math.hypot(
+    (lIris.x - (lEyeInner.x + lEyeOuter.x) / 2) / lEyeWidth,
+    (lIris.y - (lEyeInner.y + lEyeOuter.y) / 2) / lEyeWidth
+  );
+  const rIrisOffset = Math.hypot(
+    (rIris.x - (rEyeInner.x + rEyeOuter.x) / 2) / rEyeWidth,
+    (rIris.y - (rEyeInner.y + rEyeOuter.y) / 2) / rEyeWidth
+  );
+
+  return lIrisOffset < 0.3 && rIrisOffset < 0.3;
 }
 
-function analyzeGestures(landmarks) {
-  const lw = landmarks[15], rw = landmarks[16];
-  if (sessionState.lastWristPos) {
-    const lDelta = Math.hypot(lw.x - sessionState.lastWristPos.lx, lw.y - sessionState.lastWristPos.ly);
-    const rDelta = Math.hypot(rw.x - sessionState.lastWristPos.rx, rw.y - sessionState.lastWristPos.ry);
-    if (lDelta > 0.02 || rDelta > 0.02) sessionState.gestureCount++;
+function analyzeExpression(landmarks) {
+  const lCorner = landmarks[61], rCorner = landmarks[291];
+  const mouthCenter = landmarks[13];
+  const lSmile = mouthCenter.y - lCorner.y;
+  const rSmile = mouthCenter.y - rCorner.y;
+  const avgSmile = (lSmile + rSmile) / 2;
+  return avgSmile > 0.02;
+}
+
+function analyzeMouthOpenness(landmarks) {
+  const upperLip = landmarks[13], lowerLip = landmarks[14];
+  const distance = Math.hypot(upperLip.x - lowerLip.x, upperLip.y - lowerLip.y);
+  sessionState.mouthOpennessValues.push(distance);
+}
+
+function analyzeBlink(landmarks) {
+  const upper = landmarks[159], lower = landmarks[145];
+  const eyeOpenDist = Math.hypot(upper.x - lower.x, upper.y - lower.y);
+  const currentClosed = eyeOpenDist < 0.015;
+  if (sessionState.lastBlinkState === false && currentClosed === true) {
+    sessionState.blinkCount++;
   }
-  sessionState.lastWristPos = { lx: lw.x, ly: lw.y, rx: rw.x, ry: rw.y };
+  sessionState.lastBlinkState = currentClosed;
 }
 
-function analyzeOpenness(landmarks) {
-  const ls = landmarks[11], rs = landmarks[12];
-  const lw = landmarks[15], rw = landmarks[16];
-  const lOpen = Math.hypot(lw.x - ls.x, lw.y - ls.y);
-  const rOpen = Math.hypot(rw.x - rs.x, rw.y - rs.y);
-  const avg = (lOpen + rOpen) / 2;
-  return avg > 0.15;
+function analyzeEyebrowRaise(landmarks) {
+  const lBrow = landmarks[105], lEye = landmarks[159];
+  const rBrow = landmarks[334], rEye = landmarks[386];
+  const lDist = lEye.y - lBrow.y;
+  const rDist = rEye.y - rBrow.y;
+  const avgDist = (lDist + rDist) / 2;
+  if (sessionState.baselineBrowY === null) {
+    sessionState.baselineBrowY = avgDist;
+  } else {
+    sessionState.baselineBrowY = sessionState.baselineBrowY * 0.95 + avgDist * 0.05;
+  }
+  if (avgDist > sessionState.baselineBrowY * 1.3) {
+    sessionState.eyebrowRaiseCount++;
+  }
 }
 
 document.getElementById('getFeedbackBtn').addEventListener('click', async () => {
@@ -322,25 +366,27 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
     ? Math.round(sessionState.postureScores.reduce((a, b) => a + b, 0) / sessionState.postureScores.length)
     : 0;
 
+  const eyeContactPct = sessionState.totalFrames > 0
+    ? Math.round((sessionState.eyeContactFrames / sessionState.totalFrames) * 100) : 0;
+  const smilePct = sessionState.totalFrames > 0
+    ? Math.round((sessionState.smileFrames / sessionState.totalFrames) * 100) : 0;
+  const blinksPerMin = minutes > 0
+    ? Math.round(sessionState.blinkCount / minutes) : 0;
+  const avgMouthOpen = sessionState.mouthOpennessValues.length > 0
+    ? parseFloat((sessionState.mouthOpennessValues.reduce((a, b) => a + b, 0) / sessionState.mouthOpennessValues.length * 1000).toFixed(1)) : 0;
+
   console.log('=== FEEDBACK DATA ===');
   console.log('transcript:', sessionState.transcript);
   console.log('wordCount:', sessionState.wordCount);
   console.log('minutes:', minutes);
   console.log('pace:', minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0);
   console.log('fillerCount:', sessionState.fillerCount);
-  console.log('postureScore:', avgPosture);
-  console.log('duration sec:', seconds);
-
-  const eyeContactPct = sessionState.totalFrames > 0
-    ? Math.round((sessionState.eyeContactFrames / sessionState.totalFrames) * 100) : 0;
-  const gesturesPerMin = minutes > 0
-    ? Math.round(sessionState.gestureCount / minutes) : 0;
-  const opennessPct = sessionState.totalFrames > 0
-    ? Math.round((sessionState.openFrames / sessionState.totalFrames) * 100) : 0;
-
+  console.log('headPositionScore:', avgPosture);
   console.log('eyeContact%:', eyeContactPct);
-  console.log('gestures/min:', gesturesPerMin);
-  console.log('openness%:', opennessPct);
+  console.log('smile%:', smilePct);
+  console.log('blinks/min:', blinksPerMin);
+  console.log('mouthOpenness:', avgMouthOpen);
+  console.log('duration sec:', seconds);
 
   if (seconds < 15) {
     sessionState.coachingTips.push('Please speak for at least five minutes before our agents can analyze your presentation and give you feedback.');
@@ -348,15 +394,19 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
     try {
       const res = await fetch('/api/coach/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCSRF()
+        },
         body: JSON.stringify({
           transcript: sessionState.transcript,
           filler_count: sessionState.fillerCount,
           pace: minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0,
           posture_score: avgPosture,
           eye_contact: eyeContactPct,
-          gesture_rate: gesturesPerMin,
-          openness: opennessPct
+          expression: smilePct,
+          blink_rate: blinksPerMin,
+          mouth_openness: avgMouthOpen
         })
       });
       const data = await res.json();
@@ -376,8 +426,9 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
     pace: minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0,
     postureScore: avgPosture,
     eyeContactScore: eyeContactPct,
-    gesturesPerMinute: gesturesPerMin,
-    opennessScore: opennessPct,
+    smileScore: smilePct,
+    blinkRate: blinksPerMin,
+    mouthOpenness: avgMouthOpen,
     postureScores: sessionState.postureScores,
     tips: sessionState.coachingTips,
     transcript: sessionState.transcript
@@ -385,7 +436,10 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
   try {
     const res = await fetch('/api/save-session/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCSRF()
+      },
       body: JSON.stringify(payload)
     });
     const result = await res.json();

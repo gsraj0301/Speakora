@@ -56,17 +56,17 @@
       </div>
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
         <div class="flex items-center gap-2 mb-2 sm:mb-3">
-          <span id="gestureDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
-          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Gestures</p>
+          <span id="smileDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
+          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Smile</p>
         </div>
-        <p id="rGestures" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">-- <span class="text-lg sm:text-2xl text-slate-400 font-normal">/min</span></p>
+        <p id="rSmile" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">--<span class="text-lg sm:text-2xl text-slate-400 font-normal">%</span></p>
       </div>
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
         <div class="flex items-center gap-2 mb-2 sm:mb-3">
-          <span id="opennessDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
-          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Openness</p>
+          <span id="blinkDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
+          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Blink Rate</p>
         </div>
-        <p id="rOpenness" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">--<span class="text-lg sm:text-2xl text-slate-400 font-normal">%</span></p>
+        <p id="rBlink" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">-- <span class="text-lg sm:text-2xl text-slate-400 font-normal">/min</span></p>
       </div>
     </div>
 
@@ -137,16 +137,17 @@
     if (data.pace < 100) parts.push('speaking too slowly');
     else if (data.pace > 180) parts.push('speaking too fast');
     else if (data.pace > 0) parts.push('good pace');
-    if (data.postureScore < 60) parts.push('poor posture');
-    else if (data.postureScore < 80) parts.push('fair posture');
-    else if (data.postureScore > 0) parts.push('strong posture');
+    if (data.postureScore < 60) parts.push('poor head position');
+    else if (data.postureScore < 80) parts.push('fair head position');
+    else if (data.postureScore > 0) parts.push('strong head position');
     if (data.eyeContactScore < 60) parts.push('limited eye contact');
     else if (data.eyeContactScore > 0) parts.push('good eye contact');
-    if (data.gesturesPerMinute < 5) parts.push('too still');
-    else if (data.gesturesPerMinute > 40) parts.push('excessive gesturing');
-    else if (data.gesturesPerMinute > 0) parts.push('good gestures');
-    if (data.opennessScore < 40) parts.push('closed stance');
-    else if (data.opennessScore > 0) parts.push('open stance');
+    if (data.smileScore < 40) parts.push('low facial expression');
+    else if (data.smileScore > 70) parts.push('great facial expression');
+    else if (data.smileScore > 0) parts.push('some facial expression');
+    if (data.blinkRate > 25) parts.push('high blink rate');
+    else if (data.blinkRate > 0 && data.blinkRate < 5) parts.push('low blink rate');
+    else if (data.blinkRate > 0) parts.push('natural blink rate');
     return parts.length > 0 ? 'Session summary: ' + parts.join(', ') + '.' : '';
   }
 
@@ -184,22 +185,22 @@
   else if (data.eyeContactScore > 0) dotColor(eDot, '#ef4444');
   else dotColor(eDot, '#64748b');
 
-  // Gestures
-  const gestVal = document.getElementById('rGestures');
-  gestVal.innerHTML = (data.gesturesPerMinute || 0) + ' <span class="text-2xl text-slate-400 font-normal">/min</span>';
-  const gDot = document.getElementById('gestureDot');
-  if (data.gesturesPerMinute >= 10 && data.gesturesPerMinute <= 30) dotColor(gDot, '#34d399');
-  else if (data.gesturesPerMinute > 0 && ((data.gesturesPerMinute >= 5 && data.gesturesPerMinute < 10) || (data.gesturesPerMinute > 30 && data.gesturesPerMinute <= 40))) dotColor(gDot, '#f59e0b');
-  else if (data.gesturesPerMinute > 0) dotColor(gDot, '#ef4444');
-  else dotColor(gDot, '#64748b');
+  // Smile
+  document.getElementById('rSmile').textContent = (data.smileScore || 0) + '%';
+  const sDot = document.getElementById('smileDot');
+  if (data.smileScore >= 70) dotColor(sDot, '#34d399');
+  else if (data.smileScore >= 40) dotColor(sDot, '#f59e0b');
+  else if (data.smileScore > 0) dotColor(sDot, '#ef4444');
+  else dotColor(sDot, '#64748b');
 
-  // Openness
-  document.getElementById('rOpenness').textContent = (data.opennessScore || 0) + '%';
-  const oDot = document.getElementById('opennessDot');
-  if (data.opennessScore >= 80) dotColor(oDot, '#34d399');
-  else if (data.opennessScore >= 40) dotColor(oDot, '#f59e0b');
-  else if (data.opennessScore > 0) dotColor(oDot, '#ef4444');
-  else dotColor(oDot, '#64748b');
+  // Blink Rate
+  const blinkVal = document.getElementById('rBlink');
+  blinkVal.innerHTML = (data.blinkRate || 0) + ' <span class="text-2xl text-slate-400 font-normal">/min</span>';
+  const bDot = document.getElementById('blinkDot');
+  if (data.blinkRate >= 10 && data.blinkRate <= 20) dotColor(bDot, '#34d399');
+  else if (data.blinkRate > 0 && ((data.blinkRate >= 5 && data.blinkRate < 10) || (data.blinkRate > 20 && data.blinkRate <= 25))) dotColor(bDot, '#f59e0b');
+  else if (data.blinkRate > 0) dotColor(bDot, '#ef4444');
+  else dotColor(bDot, '#64748b');
 
   // Feedback
   if (data.tips && data.tips.length > 0 && data.tips[0]) {

@@ -6,7 +6,7 @@
 
 [![Django](https://img.shields.io/badge/Django-4.2-092E20?logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![Groq](https://img.shields.io/badge/Groq-Whisper+LLM-F97316?logo=groq&logoColor=white)](https://groq.com/)
-[![MediaPipe](https://img.shields.io/badge/MediaPipe-Pose-00E5FF)](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker)
+[![MediaPipe](https://img.shields.io/badge/MediaPipe-Face-00E5FF)](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker)
 [![Tailwind](https://img.shields.io/badge/Tailwind-CSS-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![PythonAnywhere](https://img.shields.io/badge/PythonAnywhere-deployed-1D8CF0)](https://www.pythonanywhere.com/)
 
@@ -70,7 +70,7 @@ The core idea was simple: let someone practice a presentation in their browser a
 
 ## 📸 Preview
 
-![Speakora in action](static/Screenshot_2026-06-12_15-45-58.png)
+![Speakora in action](static/Screenshot_2026-06-12_17-20-32.png)
 
 ---
 
