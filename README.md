@@ -70,7 +70,7 @@ The core idea was simple: let someone practice a presentation in their browser a
 
 ## 📸 Preview
 
-![Speakora in action](static/Screenshot_2026-06-12_17-20-32.png)
+![Speakora in action](screenshots/preview-page.png)
 
 ---
 
