@@ -1,7 +1,8 @@
 from django.db import models
+from django.conf import settings
 
 class PracticeSession(models.Model):
-    student_id = models.CharField(max_length=100)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     date = models.DateTimeField(auto_now_add=True)
     duration_seconds = models.IntegerField(default=0)
     filler_word_count = models.IntegerField(default=0)
@@ -17,5 +18,5 @@ class PracticeSession(models.Model):
     transcript = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.student_id} - {self.date.strftime('%b %d, %Y')}"
+        return f"{self.user.username if self.user else 'unknown'} - {self.date.strftime('%b %d, %Y')}"
 

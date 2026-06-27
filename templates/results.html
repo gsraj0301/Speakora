@@ -1,10 +1,14 @@
 {% extends 'base.html' %}
 {% block title %}Session Results — Presentation Coach{% endblock %}
 {% block content %}
+{{ session_data_json|json_script:"session-data" }}
 <div class="min-h-screen bg-slate-900 text-white">
-  <div class="max-w-3xl mx-auto px-4 py-8">
+  <div id="errorFallback" class="hidden min-h-screen flex items-center justify-center">
+    <p class="text-slate-400">No session data found.</p>
+  </div>
+  <div id="mainContent" class="max-w-3xl mx-auto px-4 py-8">
     <!-- Back link -->
-    <a href="/" class="inline-flex items-center text-slate-400 text-sm hover:text-white transition-colors mb-8">
+    <a href="{% url 'landing' %}" class="inline-flex items-center text-slate-400 text-sm hover:text-white transition-colors mb-8">
       <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
       Back home
     </a>
@@ -38,7 +42,7 @@
           <span id="paceDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
           <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Pace</p>
         </div>
-        <p id="rPace" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">-- <span class="text-lg sm:text-2xl text-slate-400 font-normal">wpm</span></p>
+        <p id="rPace" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">-- wpm</p>
       </div>
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
         <div class="flex items-center gap-2 mb-2 sm:mb-3">
@@ -102,16 +106,30 @@
 
     <!-- Actions -->
     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-8">
-      <a href="/practice/" class="bg-white text-slate-900 text-sm font-medium px-6 py-3 rounded-lg hover:opacity-90 transition-opacity text-center">Practice again</a>
-      <a href="/dashboard/" class="bg-slate-800 text-slate-200 text-sm font-medium px-6 py-3 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors text-center">View history</a>
+      <a href="{% url 'coach' %}" class="bg-white text-slate-900 text-sm font-medium px-6 py-3 rounded-lg hover:opacity-90 transition-opacity text-center">Practice again</a>
+      <a href="{% url 'dashboard' %}" class="bg-slate-800 text-slate-200 text-sm font-medium px-6 py-3 rounded-lg border border-slate-700 hover:bg-slate-700 transition-colors text-center">View history</a>
     </div>
   </div>
 </div>
 
 <script>
-  const sessionData = {{ session_data_json|safe }};
-  const data = sessionData || JSON.parse(sessionStorage.getItem('sessionData'));
-  if (!data) document.body.innerHTML = '<div class="min-h-screen bg-slate-900 text-white flex items-center justify-center"><p class="text-slate-400">No session data found.</p></div>';
+  let data;
+  try {
+    data = JSON.parse(document.getElementById('session-data').textContent);
+  } catch (e) {
+    data = null;
+  }
+  if (!data) {
+    try {
+      data = JSON.parse(sessionStorage.getItem('sessionData'));
+    } catch (e) {
+      data = null;
+    }
+  }
+  if (!data) {
+    document.getElementById('errorFallback').classList.remove('hidden');
+    document.getElementById('mainContent').classList.add('hidden');
+  }
 
   function fmtDate(iso) {
     const d = new Date(iso);
@@ -162,14 +180,13 @@
   else if (data.fillerCount > 5) dotColor(fDot, '#f59e0b');
   else dotColor(fDot, '#34d399');
 
-  const paceVal = document.getElementById('rPace');
-  paceVal.innerHTML = data.pace + ' <span class="text-2xl text-slate-400 font-normal">wpm</span>';
   const pDot = document.getElementById('paceDot');
   if (data.pace > 0 && data.pace >= 120 && data.pace <= 150) dotColor(pDot, '#34d399');
   else if (data.pace > 0 && ((data.pace >= 100 && data.pace < 120) || (data.pace > 150 && data.pace <= 180))) dotColor(pDot, '#f59e0b');
   else if (data.pace > 0) dotColor(pDot, '#ef4444');
   else dotColor(pDot, '#64748b');
 
+  document.getElementById('rPace').textContent = data.pace + ' wpm';
   document.getElementById('rPosture').textContent = data.postureScore + '%';
   const poDot = document.getElementById('postureDot');
   if (data.postureScore >= 80) dotColor(poDot, '#34d399');
@@ -194,8 +211,7 @@
   else dotColor(sDot, '#64748b');
 
   // Blink Rate
-  const blinkVal = document.getElementById('rBlink');
-  blinkVal.innerHTML = (data.blinkRate || 0) + ' <span class="text-2xl text-slate-400 font-normal">/min</span>';
+  document.getElementById('rBlink').textContent = (data.blinkRate || 0) + ' /min';
   const bDot = document.getElementById('blinkDot');
   if (data.blinkRate >= 10 && data.blinkRate <= 20) dotColor(bDot, '#34d399');
   else if (data.blinkRate > 0 && ((data.blinkRate >= 5 && data.blinkRate < 10) || (data.blinkRate > 20 && data.blinkRate <= 25))) dotColor(bDot, '#f59e0b');

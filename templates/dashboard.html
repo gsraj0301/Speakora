@@ -8,7 +8,7 @@
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 sm:mb-8">
       <h1 class="text-2xl sm:text-3xl font-bold text-center sm:text-left">Practice History</h1>
       <div class="flex items-center justify-center sm:justify-end gap-3">
-        <a href="/" class="text-gray-400 hover:text-white transition-colors text-sm">← Back to Home</a>
+        <a href="{% url 'landing' %}" class="text-gray-400 hover:text-white transition-colors text-sm">← Back to Home</a>
         <a href="{% url 'coach' %}" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg font-semibold text-sm">+ New Practice</a>
       </div>
     </div>
@@ -114,9 +114,10 @@
   {% endif %}
 </div>
 
+{{ sessions_json|json_script:"sessions-data" }}
 <script>
-  const sessions = {{ sessions_json|safe }};
-  if (sessions.length > 0) {
+  const sessions = JSON.parse(document.getElementById('sessions-data').textContent);
+  if (sessions && sessions.length > 0) {
     const labels = sessions.map(s => new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
 
     function makeChart(id, label, dataKey, color, options) {

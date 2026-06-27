@@ -1,5 +1,7 @@
 const MP_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18";
 
+let streamRef = null;
+
 const sessionState = {
   postureScores: [],
   frameCount: 0,
@@ -25,7 +27,8 @@ const sessionState = {
   baselineBrowY: null,
   eyebrowRaiseCount: 0,
   mouthOpennessValues: [],
-  showVideo: false
+  showVideo: false,
+  stopLoop: false
 };
 
 const singleWordFillers = ['um', 'uh', 'like', 'emm', 'ah'];
@@ -72,28 +75,44 @@ function getCSRF() {
   return c ? c[1] : '';
 }
 
+function fetchWithTimeout(url, opts, ms = 60000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(id));
+}
+
 async function transcribeAudio() {
   if (sessionState.audioChunks.length === 0) return '';
-  const mimeType = sessionState.mediaRecorder ? sessionState.mediaRecorder.mimeType : 'audio/webm';
+  const raw = sessionState.mediaRecorder ? sessionState.mediaRecorder.mimeType : '';
+  const mimeType = raw && raw !== '' ? raw : 'audio/webm;codecs=opus';
   const blob = new Blob(sessionState.audioChunks, { type: mimeType });
   const fd = new FormData();
   fd.append('audio', blob, 'recording.webm');
-  const res = await fetch('/api/transcribe/', {
-    method: 'POST', body: fd,
-    headers: { 'X-CSRFToken': getCSRF() }
-  });
-  const data = await res.json();
-  if (!res.ok) {
-    console.error('Whisper error:', data);
+  try {
+    const res = await fetchWithTimeout('/api/transcribe/', {
+      method: 'POST', body: fd,
+      headers: { 'X-CSRFToken': getCSRF() }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error('Whisper error:', data);
+      return '';
+    }
+    return (data.text || '').trim();
+  } catch (e) {
+    if (e.name === 'AbortError') console.error('Whisper timed out');
+    else console.error('Whisper error:', e);
     return '';
   }
-  return (data.text || '').trim();
 }
 
 function startRecording(stream) {
   sessionState.mediaRecorder = new MediaRecorder(stream);
   sessionState.mediaRecorder.ondataavailable = (event) => {
     if (event.data.size > 0) sessionState.audioChunks.push(event.data);
+  };
+  sessionState.mediaRecorder.onerror = () => {
+    console.error('MediaRecorder error');
   };
   sessionState.mediaRecorder.start();
 }
@@ -139,8 +158,16 @@ function tryWebSpeech() {
   sessionState.recognition = recog;
 }
 
+function stopStream() {
+  if (streamRef) {
+    streamRef.getTracks().forEach(t => t.stop());
+    streamRef = null;
+  }
+}
+
 async function startWebcam() {
   const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+  streamRef = stream;
   const video = document.getElementById('webcam');
   video.muted = true;
   video.srcObject = stream;
@@ -190,14 +217,31 @@ async function init() {
   } catch (err) {
     document.getElementById('loadingText').textContent = 'Error: ' + err.message;
     console.error('Init error:', err);
+    stopStream();
+    initStarted = false;
   }
 }
 
+let initStarted = false;
+
 document.getElementById('startBtn').addEventListener('click', () => {
+  if (initStarted) return;
+  initStarted = true;
   document.getElementById('startOverlay').classList.add('hidden');
   document.getElementById('loadingText').classList.remove('hidden');
   document.getElementById('loadingText').textContent = 'Opening camera...';
-  init();
+  init().catch(() => { initStarted = false; });
+});
+
+window.addEventListener('beforeunload', () => {
+  stopStream();
+  if (sessionState.recognition) {
+    try { sessionState.recognition.abort(); } catch (e) {}
+  }
+  sessionState.sessionActive = false;
+  sessionState.stopLoop = true;
+  clearInterval(sessionState.paceInterval);
+  clearInterval(sessionState.timerInterval);
 });
 
 function detectLoop(video, DrawingUtils, FaceLandmarker) {
@@ -209,7 +253,14 @@ function detectLoop(video, DrawingUtils, FaceLandmarker) {
   canvas.style.height = video.videoHeight + 'px';
   const drawingUtils = new DrawingUtils(ctx);
 
+  let frameId = null;
+
   function detect() {
+    if (sessionState.stopLoop) {
+      if (frameId) cancelAnimationFrame(frameId);
+      return;
+    }
+    if (!sessionState.faceLandmarker) { frameId = requestAnimationFrame(detect); return; }
     if (video.currentTime !== sessionState.lastVideoTime) {
       sessionState.lastVideoTime = video.currentTime;
       const result = sessionState.faceLandmarker.detectForVideo(video, performance.now());
@@ -236,10 +287,19 @@ function detectLoop(video, DrawingUtils, FaceLandmarker) {
       ctx.translate(-canvas.width, 0);
       if (result.landmarks && result.landmarks[0]) {
         const landmarks = result.landmarks[0];
-        drawingUtils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_CONTOURS, {
-          color: "#00e5ff", lineWidth: 1
-        });
-        drawingUtils.drawLandmarks(landmarks, { color: "#00b8d4", lineWidth: 0.8 });
+        const groups = [
+          { conn: FaceLandmarker.FACE_LANDMARKS_CONTOURS_FACE_OVAL, color: "#00e5ff", width: 1.5 },
+          { conn: FaceLandmarker.FACE_LANDMARKS_CONTOURS_LEFT_EYE, color: "#00e5ff", width: 1 },
+          { conn: FaceLandmarker.FACE_LANDMARKS_CONTOURS_RIGHT_EYE, color: "#00e5ff", width: 1 },
+          { conn: FaceLandmarker.FACE_LANDMARKS_CONTOURS_LEFT_EYEBROW, color: "#00b8d4", width: 1 },
+          { conn: FaceLandmarker.FACE_LANDMARKS_CONTOURS_RIGHT_EYEBROW, color: "#00b8d4", width: 1 },
+          { conn: FaceLandmarker.FACE_LANDMARKS_CONTOURS_NOSE, color: "#00e5ff", width: 1 },
+          { conn: FaceLandmarker.FACE_LANDMARKS_CONTOURS_UPPER_LIP, color: "#4dd0e1", width: 1 },
+          { conn: FaceLandmarker.FACE_LANDMARKS_CONTOURS_LOWER_LIP, color: "#4dd0e1", width: 1 },
+        ];
+        for (const g of groups) {
+          drawingUtils.drawConnectors(landmarks, g.conn, { color: g.color, lineWidth: g.width });
+        }
 
         sessionState.frameCount++;
         if (sessionState.frameCount % 30 === 0) {
@@ -254,7 +314,7 @@ function detectLoop(video, DrawingUtils, FaceLandmarker) {
       }
       ctx.restore();
     }
-    requestAnimationFrame(detect);
+    frameId = requestAnimationFrame(detect);
   }
   detect();
 }
@@ -340,118 +400,136 @@ function analyzeEyebrowRaise(landmarks) {
   }
 }
 
+let feedbackInProgress = false;
+
 document.getElementById('getFeedbackBtn').addEventListener('click', async () => {
-  document.getElementById('getFeedbackBtn').textContent = '⏳ Processing...';
-  document.getElementById('getFeedbackBtn').disabled = true;
+  if (feedbackInProgress) return;
+  feedbackInProgress = true;
+  const btn = document.getElementById('getFeedbackBtn');
+  btn.textContent = '⏳ Processing...';
+  btn.disabled = true;
   sessionState.sessionActive = false;
+  sessionState.stopLoop = true;
   if (sessionState.recognition) {
-    sessionState.recognition.stop();
+    try { sessionState.recognition.stop(); } catch (e) {}
   }
   if (sessionState.mediaRecorder && sessionState.mediaRecorder.state !== 'inactive') {
-    await new Promise(resolve => {
-      sessionState.mediaRecorder.onstop = resolve;
-      sessionState.mediaRecorder.stop();
-    });
+    await Promise.race([
+      new Promise(resolve => { sessionState.mediaRecorder.onstop = resolve; sessionState.mediaRecorder.stop(); }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('onstop timeout')), 5000))
+    ]).catch(() => {});
   }
   clearInterval(sessionState.paceInterval);
   clearInterval(sessionState.timerInterval);
-  const webcam = document.getElementById('webcam');
-  if (webcam) webcam.srcObject = null;
+  stopStream();
 
-  await transcribeAndProcess();
+  try {
+    await transcribeAndProcess();
+    sessionState.audioChunks = [];
 
-  const seconds = sessionState.startTime ? Math.round((Date.now() - sessionState.startTime) / 1000) : 0;
-  const minutes = sessionState.startTime ? (Date.now() - sessionState.startTime) / 60000 : 0;
-  const avgPosture = sessionState.postureScores.length > 0
-    ? Math.round(sessionState.postureScores.reduce((a, b) => a + b, 0) / sessionState.postureScores.length)
-    : 0;
+    const seconds = sessionState.startTime ? Math.round((Date.now() - sessionState.startTime) / 1000) : 0;
+    const minutes = sessionState.startTime ? (Date.now() - sessionState.startTime) / 60000 : 0;
+    const avgPosture = sessionState.postureScores.length > 0
+      ? Math.round(sessionState.postureScores.reduce((a, b) => a + b, 0) / sessionState.postureScores.length)
+      : 0;
 
-  const eyeContactPct = sessionState.totalFrames > 0
-    ? Math.round((sessionState.eyeContactFrames / sessionState.totalFrames) * 100) : 0;
-  const smilePct = sessionState.totalFrames > 0
-    ? Math.round((sessionState.smileFrames / sessionState.totalFrames) * 100) : 0;
-  const blinksPerMin = minutes > 0
-    ? Math.round(sessionState.blinkCount / minutes) : 0;
-  const avgMouthOpen = sessionState.mouthOpennessValues.length > 0
-    ? parseFloat((sessionState.mouthOpennessValues.reduce((a, b) => a + b, 0) / sessionState.mouthOpennessValues.length * 1000).toFixed(1)) : 0;
+    const eyeContactPct = sessionState.totalFrames > 0
+      ? Math.round((sessionState.eyeContactFrames / sessionState.totalFrames) * 100) : 0;
+    const smilePct = sessionState.totalFrames > 0
+      ? Math.round((sessionState.smileFrames / sessionState.totalFrames) * 100) : 0;
+    const blinksPerMin = minutes > 0
+      ? Math.round(sessionState.blinkCount / minutes) : 0;
+    const avgMouthOpen = sessionState.mouthOpennessValues.length > 0
+      ? parseFloat((sessionState.mouthOpennessValues.reduce((a, b) => a + b, 0) / sessionState.mouthOpennessValues.length * 1000).toFixed(1)) : 0;
 
-  console.log('=== FEEDBACK DATA ===');
-  console.log('transcript:', sessionState.transcript);
-  console.log('wordCount:', sessionState.wordCount);
-  console.log('minutes:', minutes);
-  console.log('pace:', minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0);
-  console.log('fillerCount:', sessionState.fillerCount);
-  console.log('headPositionScore:', avgPosture);
-  console.log('eyeContact%:', eyeContactPct);
-  console.log('smile%:', smilePct);
-  console.log('blinks/min:', blinksPerMin);
-  console.log('mouthOpenness:', avgMouthOpen);
-  console.log('duration sec:', seconds);
+    console.log('=== FEEDBACK DATA ===');
+    console.log('transcript:', sessionState.transcript);
+    console.log('wordCount:', sessionState.wordCount);
+    console.log('minutes:', minutes);
+    console.log('pace:', minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0);
+    console.log('fillerCount:', sessionState.fillerCount);
+    console.log('headPositionScore:', avgPosture);
+    console.log('eyeContact%:', eyeContactPct);
+    console.log('smile%:', smilePct);
+    console.log('blinks/min:', blinksPerMin);
+    console.log('mouthOpenness:', avgMouthOpen);
+    console.log('duration sec:', seconds);
 
-  if (seconds < 15) {
-    sessionState.coachingTips.push('Please speak for at least five minutes before our agents can analyze your presentation and give you feedback.');
-  } else {
+    if (seconds < 15) {
+      sessionState.coachingTips.push('Please speak for at least 15 seconds before our agents can analyze your presentation and give you feedback.');
+    } else {
+      try {
+        const res = await fetchWithTimeout('/api/coach/', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRF()
+          },
+          body: JSON.stringify({
+            transcript: sessionState.transcript,
+            filler_count: sessionState.fillerCount,
+            pace: minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0,
+            posture_score: avgPosture,
+            eye_contact: eyeContactPct,
+            expression: smilePct,
+            blink_rate: blinksPerMin,
+            mouth_openness: avgMouthOpen
+          })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          console.error('Coach API error:', res.status, errData);
+        } else {
+          const data = await res.json();
+          if (data.tip) {
+            sessionState.coachingTips.push(data.tip);
+            const utterance = new SpeechSynthesisUtterance(data.tip);
+            speechSynthesis.speak(utterance);
+          }
+        }
+      } catch (e) {
+        console.error('Coach error:', e);
+      }
+    }
+
+    const payload = {
+      duration: seconds,
+      fillerCount: sessionState.fillerCount,
+      pace: minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0,
+      postureScore: avgPosture,
+      eyeContactScore: eyeContactPct,
+      smileScore: smilePct,
+      blinkRate: blinksPerMin,
+      mouthOpenness: avgMouthOpen,
+      postureScores: sessionState.postureScores,
+      tips: sessionState.coachingTips,
+      transcript: sessionState.transcript
+    };
     try {
-      const res = await fetch('/api/coach/', {
+      const res = await fetchWithTimeout('/api/save-session/', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'X-CSRFToken': getCSRF()
         },
-        body: JSON.stringify({
-          transcript: sessionState.transcript,
-          filler_count: sessionState.fillerCount,
-          pace: minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0,
-          posture_score: avgPosture,
-          eye_contact: eyeContactPct,
-          expression: smilePct,
-          blink_rate: blinksPerMin,
-          mouth_openness: avgMouthOpen
-        })
+        body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (data.tip) {
-        sessionState.coachingTips.push(data.tip);
-        const utterance = new SpeechSynthesisUtterance(data.tip);
-        speechSynthesis.speak(utterance);
+      const result = await res.json();
+      if (result.id) {
+        window.location.href = '/results/?session_id=' + result.id;
+        return;
       }
     } catch (e) {
-      console.error('Coach error:', e);
+      console.error('Save error:', e);
     }
-  }
-
-  const payload = {
-    duration: seconds,
-    fillerCount: sessionState.fillerCount,
-    pace: minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0,
-    postureScore: avgPosture,
-    eyeContactScore: eyeContactPct,
-    smileScore: smilePct,
-    blinkRate: blinksPerMin,
-    mouthOpenness: avgMouthOpen,
-    postureScores: sessionState.postureScores,
-    tips: sessionState.coachingTips,
-    transcript: sessionState.transcript
-  };
-  try {
-    const res = await fetch('/api/save-session/', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCSRF()
-      },
-      body: JSON.stringify(payload)
-    });
-    const result = await res.json();
-    if (result.id) {
-      window.location.href = '/results/?session_id=' + result.id;
-      return;
-    }
+    sessionStorage.setItem('sessionData', JSON.stringify(payload));
+    window.location.href = '/results/';
   } catch (e) {
-    console.error('Save error:', e);
+    console.error('getFeedback error:', e);
+    btn.textContent = 'Get Feedback';
+    btn.disabled = false;
   }
-  sessionStorage.setItem('sessionData', JSON.stringify(payload));
-  window.location.href = '/results/';
+  feedbackInProgress = false;
 });
 
 document.getElementById('toggleVideoBtn').addEventListener('click', () => {

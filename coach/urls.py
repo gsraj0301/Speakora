@@ -41,4 +41,5 @@ urlpatterns = [
     path('register/', views.user_register, name='register'),
     path('logout/', views.user_logout, name='logout'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('api/run-migration/', views.run_migration, name='run_migration'),
 ]
