@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Session Results — Presentation Coach{% endblock %}
 {% block content %}
-{{ session_data_json|json_script:"session-data" }}
+{{ session_data|json_script:"session-data" }}
 <div class="min-h-screen bg-slate-900 text-white">
   <div id="errorFallback" class="hidden min-h-screen flex items-center justify-center">
     <p class="text-slate-400">No session data found.</p>
@@ -113,12 +113,18 @@
 </div>
 
 <script>
-  let data;
-  try {
-    data = JSON.parse(document.getElementById('session-data').textContent);
-  } catch (e) {
-    data = null;
+  function parseSessionData(raw) {
+    if (!raw) return null;
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch (e) { return null; }
+    if (typeof parsed === 'string') {
+      try { parsed = JSON.parse(parsed); } catch (e) { return null; }
+    }
+    if (typeof parsed === 'string' || parsed === null) return null;
+    return parsed;
   }
+
+  let data = parseSessionData(document.getElementById('session-data').textContent);
   if (!data) {
     try {
       data = JSON.parse(sessionStorage.getItem('sessionData'));
@@ -129,14 +135,19 @@
   if (!data) {
     document.getElementById('errorFallback').classList.remove('hidden');
     document.getElementById('mainContent').classList.add('hidden');
+    throw new Error('No session data');
   }
 
   function fmtDate(iso) {
+    if (!iso) return '';
     const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
   }
 
   function fmtDuration(sec) {
+    if (sec == null || isNaN(sec)) return '0s';
+    sec = Math.max(0, sec);
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     if (m === 0) return s + 's';

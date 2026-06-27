@@ -83,7 +83,7 @@ def transcribe(request):
 def results_page(request):
     session_id = request.GET.get('session_id')
     session = None
-    session_data_json = 'null'
+    session_data = None
     if session_id:
         try:
             session_id = int(session_id)
@@ -92,7 +92,7 @@ def results_page(request):
         if session_id:
             session = get_object_or_404(PracticeSession, id=session_id, user=request.user)
             tips_list = [t for t in session.feedback_text.split('\n') if t]
-            session_data_json = json.dumps({
+            session_data = {
                 'id': session.id,
                 'date': session.date.isoformat(),
                 'duration': session.duration_seconds,
@@ -107,8 +107,8 @@ def results_page(request):
                 'mouthOpenness': session.mouth_openness,
                 'tips': tips_list,
                 'transcript': session.transcript
-            })
-    return render(request, 'results.html', {'session_data_json': session_data_json})
+            }
+    return render(request, 'results.html', {'session_data': session_data})
 
 @login_required(login_url='/login/')
 def save_session(request):
@@ -203,13 +203,13 @@ Rules:
 @login_required(login_url='/login/')
 def dashboard(request):
     sessions = PracticeSession.objects.filter(user=request.user).order_by('date')
-    sessions_json = json.dumps(list(sessions.values(
+    sessions_data = list(sessions.values(
         'id', 'date', 'duration_seconds', 'filler_word_count', 'avg_pace_wpm', 'posture_score',
         'eye_contact_score', 'gestures_per_minute', 'openness_score', 'smile_score', 'blink_rate', 'mouth_openness'
-    )), cls=DjangoJSONEncoder)
+    ))
     return render(request, 'dashboard.html', {
         'sessions': sessions,
-        'sessions_json': sessions_json
+        'sessions_data': sessions_data
     })
 
 MIGRATE_TOKEN = "deploy_migrate_2026"
