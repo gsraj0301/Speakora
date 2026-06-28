@@ -7,6 +7,10 @@ deploy.py
 package.json
 tailwind.config.js
 static/css/input.css
+*.jpeg
+*.jpg
+*.png
+*.gif
 AGENTS.md
 PROJECT_STATUS.md
 DESIGN-vercel.md

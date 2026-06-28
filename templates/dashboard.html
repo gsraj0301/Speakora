@@ -26,10 +26,6 @@
         <canvas id="paceChart" height="80"></canvas>
       </div>
       <div class="bg-gray-800 p-4 rounded-lg">
-        <h2 class="text-lg font-semibold mb-3">Head Position</h2>
-        <canvas id="postureChart" height="80"></canvas>
-      </div>
-      <div class="bg-gray-800 p-4 rounded-lg">
         <h2 class="text-lg font-semibold mb-3">Facial Expression (Smile)</h2>
         <canvas id="smileChart" height="80"></canvas>
       </div>
@@ -45,7 +41,7 @@
         {% with first=sessions.first last=sessions.last %}
         <div class="bg-gray-800 p-4 rounded-lg mb-8">
           <h2 class="text-lg font-semibold mb-3">Improvement Summary</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 text-center">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center">
             <div>
               <p class="text-gray-400 text-sm">Fillers</p>
               <p class="text-xl font-bold {% if last.filler_word_count < first.filler_word_count %}text-green-400{% else %}text-red-400{% endif %}">
@@ -56,12 +52,6 @@
               <p class="text-gray-400 text-sm">Pace</p>
               <p class="text-xl font-bold {% if last.avg_pace_wpm >= first.avg_pace_wpm|add:-10 and last.avg_pace_wpm <= first.avg_pace_wpm|add:10 %}text-green-400{% else %}text-yellow-400{% endif %}">
                 {{ first.avg_pace_wpm|floatformat:0 }} → {{ last.avg_pace_wpm|floatformat:0 }} wpm
-              </p>
-            </div>
-            <div>
-              <p class="text-gray-400 text-sm">Head Position</p>
-              <p class="text-xl font-bold {% if last.posture_score > first.posture_score %}text-green-400{% elif last.posture_score < first.posture_score %}text-red-400{% else %}text-gray-400{% endif %}">
-                {{ first.posture_score|floatformat:0 }}% → {{ last.posture_score|floatformat:0 }}%
               </p>
             </div>
             <div>
@@ -91,7 +81,6 @@
             <th class="p-3">Duration</th>
             <th class="p-3">Fillers</th>
             <th class="p-3">Pace</th>
-            <th class="p-3">Head Pos.</th>
             <th class="p-3">Smile</th>
             <th class="p-3">Blink</th>
           </tr>
@@ -103,7 +92,6 @@
             <td class="p-3">{{ s.duration_seconds|floatformat:0 }}s</td>
             <td class="p-3">{{ s.filler_word_count }}</td>
             <td class="p-3">{{ s.avg_pace_wpm|floatformat:0 }} wpm</td>
-            <td class="p-3">{{ s.posture_score|floatformat:0 }}%</td>
             <td class="p-3">{{ s.smile_score }}%</td>
             <td class="p-3">{{ s.blink_rate|floatformat:0 }}/min</td>
           </tr>
@@ -159,7 +147,6 @@
 
     makeChart('fillerChart', 'Fillers', 'filler_word_count', '#ef4444');
     makeChart('paceChart', 'Pace (WPM)', 'avg_pace_wpm', '#3b82f6');
-    makeChart('postureChart', 'Head Position', 'posture_score', '#22c55e', { scales: { y: { beginAtZero: true, max: 100, ticks: { color: '#9ca3af' } } } });
     makeChart('smileChart', 'Smile (%)', 'smile_score', '#f59e0b', { scales: { y: { beginAtZero: true, max: 100, ticks: { color: '#9ca3af' } } } });
     makeChart('blinkChart', 'Blink Rate (/min)', 'blink_rate', '#a855f7');
   }

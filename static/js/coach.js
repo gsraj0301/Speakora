@@ -3,7 +3,6 @@ const MP_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18";
 let streamRef = null;
 
 const sessionState = {
-  postureScores: [],
   frameCount: 0,
   lastVideoTime: -1,
   faceLandmarker: null,
@@ -23,7 +22,9 @@ const sessionState = {
   totalFrames: 0,
   smileFrames: 0,
   blinkCount: 0,
+  maxEyeOpenDist: 0,
   lastBlinkState: false,
+  baselineSmileDist: null,
   baselineBrowY: null,
   eyebrowRaiseCount: 0,
   mouthOpennessValues: [],
@@ -148,10 +149,9 @@ function tryWebSpeech() {
   };
 
   recog.onerror = (event) => {
-    if (event.error === 'network') {
-      sessionState.webSpeechFailed = true;
-      status('Web Speech unavailable; recorded audio will be transcribed via Whisper.');
-    }
+    sessionState.webSpeechFailed = true;
+    console.error('Web Speech error:', event.error);
+    status('Web Speech unavailable; recorded audio will be transcribed via Whisper.');
   };
 
   recog.start();
@@ -178,6 +178,8 @@ async function startWebcam() {
 async function transcribeAndProcess() {
   const text = await transcribeAudio();
   if (text) {
+    sessionState.wordCount = 0;
+    sessionState.fillerCount = 0;
     sessionState.transcript += (sessionState.transcript ? ' ' : '') + text;
     countFillers(text);
     countWords(text);
@@ -301,10 +303,9 @@ function detectLoop(video, DrawingUtils, FaceLandmarker) {
           drawingUtils.drawConnectors(landmarks, g.conn, { color: g.color, lineWidth: g.width });
         }
 
-        sessionState.frameCount++;
-        if (sessionState.frameCount % 30 === 0) {
-          sessionState.postureScores.push(analyzeHeadPosition(landmarks));
-          if (analyzeEyeContact(landmarks)) sessionState.eyeContactFrames++;
+          sessionState.frameCount++;
+          if (sessionState.frameCount % 30 === 0) {
+            if (analyzeEyeContact(landmarks)) sessionState.eyeContactFrames++;
           if (analyzeExpression(landmarks)) sessionState.smileFrames++;
           analyzeMouthOpenness(landmarks);
           analyzeBlink(landmarks);
@@ -317,24 +318,6 @@ function detectLoop(video, DrawingUtils, FaceLandmarker) {
     frameId = requestAnimationFrame(detect);
   }
   detect();
-}
-
-function analyzeHeadPosition(landmarks) {
-  const nose = landmarks[4], chin = landmarks[152];
-  const lEar = landmarks[234], rEar = landmarks[454];
-
-  let score = 100;
-  const headAngle = Math.atan2(Math.abs(nose.x - chin.x), chin.y - nose.y) * 180 / Math.PI;
-  if (headAngle > 20) score -= 15;
-
-  const earY = (lEar.y + rEar.y) / 2;
-  const noseDrop = nose.y - earY;
-  if (noseDrop > 0.08) score -= 10;
-
-  const noseOffset = Math.abs(nose.x - 0.5);
-  if (noseOffset > 0.1) score -= 10;
-
-  return Math.max(0, score);
 }
 
 function analyzeEyeContact(landmarks) {
@@ -362,10 +345,15 @@ function analyzeEyeContact(landmarks) {
 function analyzeExpression(landmarks) {
   const lCorner = landmarks[61], rCorner = landmarks[291];
   const mouthCenter = landmarks[13];
-  const lSmile = mouthCenter.y - lCorner.y;
-  const rSmile = mouthCenter.y - rCorner.y;
-  const avgSmile = (lSmile + rSmile) / 2;
-  return avgSmile > 0.02;
+  const lDist = Math.abs(mouthCenter.y - lCorner.y);
+  const rDist = Math.abs(mouthCenter.y - rCorner.y);
+  const avgDist = (lDist + rDist) / 2;
+  if (sessionState.baselineSmileDist === null) {
+    sessionState.baselineSmileDist = avgDist;
+  } else {
+    sessionState.baselineSmileDist = sessionState.baselineSmileDist * 0.95 + avgDist * 0.05;
+  }
+  return avgDist < sessionState.baselineSmileDist * 0.7;
 }
 
 function analyzeMouthOpenness(landmarks) {
@@ -377,7 +365,10 @@ function analyzeMouthOpenness(landmarks) {
 function analyzeBlink(landmarks) {
   const upper = landmarks[159], lower = landmarks[145];
   const eyeOpenDist = Math.hypot(upper.x - lower.x, upper.y - lower.y);
-  const currentClosed = eyeOpenDist < 0.015;
+  if (eyeOpenDist > sessionState.maxEyeOpenDist) {
+    sessionState.maxEyeOpenDist = eyeOpenDist;
+  }
+  const currentClosed = eyeOpenDist < sessionState.maxEyeOpenDist * 0.4;
   if (sessionState.lastBlinkState === false && currentClosed === true) {
     sessionState.blinkCount++;
   }
@@ -429,9 +420,6 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
 
     const seconds = sessionState.startTime ? Math.round((Date.now() - sessionState.startTime) / 1000) : 0;
     const minutes = sessionState.startTime ? (Date.now() - sessionState.startTime) / 60000 : 0;
-    const avgPosture = sessionState.postureScores.length > 0
-      ? Math.round(sessionState.postureScores.reduce((a, b) => a + b, 0) / sessionState.postureScores.length)
-      : 0;
 
     const eyeContactPct = sessionState.totalFrames > 0
       ? Math.round((sessionState.eyeContactFrames / sessionState.totalFrames) * 100) : 0;
@@ -448,7 +436,6 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
     console.log('minutes:', minutes);
     console.log('pace:', minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0);
     console.log('fillerCount:', sessionState.fillerCount);
-    console.log('headPositionScore:', avgPosture);
     console.log('eyeContact%:', eyeContactPct);
     console.log('smile%:', smilePct);
     console.log('blinks/min:', blinksPerMin);
@@ -457,6 +444,8 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
 
     if (seconds < 15) {
       sessionState.coachingTips.push('Please speak for at least 15 seconds before our agents can analyze your presentation and give you feedback.');
+    } else if (!sessionState.transcript.trim()) {
+      sessionState.coachingTips.push("Transcription couldn't capture your speech. Speak clearly and close to the mic.");
     } else {
       try {
         const res = await fetchWithTimeout('/api/coach/', {
@@ -469,7 +458,6 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
             transcript: sessionState.transcript,
             filler_count: sessionState.fillerCount,
             pace: minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0,
-            posture_score: avgPosture,
             eye_contact: eyeContactPct,
             expression: smilePct,
             blink_rate: blinksPerMin,
@@ -496,12 +484,10 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
       duration: seconds,
       fillerCount: sessionState.fillerCount,
       pace: minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0,
-      postureScore: avgPosture,
       eyeContactScore: eyeContactPct,
       smileScore: smilePct,
       blinkRate: blinksPerMin,
       mouthOpenness: avgMouthOpen,
-      postureScores: sessionState.postureScores,
       tips: sessionState.coachingTips,
       transcript: sessionState.transcript
     };

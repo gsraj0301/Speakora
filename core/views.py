@@ -100,8 +100,6 @@ def results_page(request):
                 'pace': session.avg_pace_wpm,
                 'postureScore': session.posture_score,
                 'eyeContactScore': session.eye_contact_score,
-                'gesturesPerMinute': session.gestures_per_minute,
-                'opennessScore': session.openness_score,
                 'smileScore': session.smile_score,
                 'blinkRate': session.blink_rate,
                 'mouthOpenness': session.mouth_openness,
@@ -130,8 +128,6 @@ def save_session(request):
         avg_pace_wpm=float(body.get('pace', 0) or 0),
         posture_score=float(body.get('postureScore', 0) or 0),
         eye_contact_score=float(body.get('eyeContactScore', 0) or 0),
-        gestures_per_minute=float(body.get('gesturesPerMinute', 0) or 0),
-        openness_score=float(body.get('opennessScore', 0) or 0),
         smile_score=int(body.get('smileScore', 0) or 0),
         blink_rate=float(body.get('blinkRate', 0) or 0),
         mouth_openness=float(body.get('mouthOpenness', 0) or 0),
@@ -150,36 +146,35 @@ def coach(request):
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    prompt = f"""You are an expert presentation coach reviewing a student's practice session.
+    prompt = f"""You are an expert presentation coach reviewing a student's practice session based on their transcript and delivery metrics.
 
 Session data:
-- Transcript: {body.get('transcript', '')}
+- Transcript excerpt: "{body.get('transcript', '')[:500]}"
 - Filler words used: {body.get('filler_count', 0)} times
-- Speaking pace: {body.get('pace', 0)} wpm (ideal range: 120-150 wpm)
-- Head position score: {body.get('posture_score', 0)}/100
+- Speaking pace: {body.get('pace', 0)} wpm (ideal: 120-150 wpm)
 - Eye contact: {body.get('eye_contact', 0)}% of time looking at camera
 - Positive facial expression (smile): {body.get('expression', 0)}% of time
-- Blink rate: {body.get('blink_rate', 0)} blinks per minute (typical range: 10-20/min)
-- Mouth openness: {body.get('mouth_openness', 0)} (higher = clearer articulation, lower = mumbling)
+- Blink rate: {body.get('blink_rate', 0)} blinks/min (typical: 10-20/min)
+- Mouth openness: {body.get('mouth_openness', 0)}
+
+Focus your feedback on: pace variation, use of pauses, tone, repeated words, filler word patterns, eye contact, facial expression, and articulation clarity.
 
 Give feedback in exactly this structure:
 
-STRENGTH: One thing they did well (be specific, not generic).
+STRENGTH: One specific thing they did well based on the transcript or metrics.
 IMPROVE: The single most important thing to fix this session.
-TIP: One concrete drill or technique they can practice today to fix it.
+TIP: One concrete drill they can practice today.
 
 Rules:
-- Be direct and honest, not just encouraging.
-- If filler count > 10, that is the priority issue.
-- If pace < 100 or > 180, flag it.
-- If head position < 60, suggest sitting up straighter.
-- If eye contact < 60%, mention looking at camera more.
-- If expression < 40%, suggest showing more facial engagement.
-- If blink rate > 25, suggest relaxation techniques.
-- If blink rate < 5, suggest being more expressive.
-- If mouth openness is low, suggest articulating more clearly.
+- Be direct and honest.
+- Reference specific words or phrases from the transcript when possible.
+- If filler count > 10, that is the priority.
+- If pace < 100 or > 180, flag it and suggest a drill.
+- If eye contact < 60%, suggest a camera-sticker drill.
+- If expression < 40%, suggest practicing in front of a mirror.
+- TIP must be an actionable exercise (e.g., "Place a sticker next to your camera lens. Every time you look at it, you'll appear to make eye contact.").
 - Never repeat the same point across sections.
-- Total response: 3 lines maximum, one per section."""
+- Total response: 3 concise lines, one per section heading."""
     resp = requests.post(
         'https://api.groq.com/openai/v1/chat/completions',
         headers={'Authorization': f'Bearer {settings.GROQ_API_KEY}', 'Content-Type': 'application/json'},
@@ -187,7 +182,8 @@ Rules:
             'model': 'openai/gpt-oss-120b',
             'messages': [{'role': 'user', 'content': prompt}],
             'temperature': 0.7,
-            'max_tokens': 150
+            'max_completion_tokens': 2048,
+            'reasoning_effort': 'low'
         },
         timeout=30
     )
@@ -205,7 +201,7 @@ def dashboard(request):
     sessions = PracticeSession.objects.filter(user=request.user).order_by('date')
     sessions_data = list(sessions.values(
         'id', 'date', 'duration_seconds', 'filler_word_count', 'avg_pace_wpm', 'posture_score',
-        'eye_contact_score', 'gestures_per_minute', 'openness_score', 'smile_score', 'blink_rate', 'mouth_openness'
+        'eye_contact_score', 'smile_score', 'blink_rate', 'mouth_openness'
     ))
     return render(request, 'dashboard.html', {
         'sessions': sessions,

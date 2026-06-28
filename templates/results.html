@@ -46,13 +46,6 @@
       </div>
       <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
         <div class="flex items-center gap-2 mb-2 sm:mb-3">
-          <span id="postureDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
-          <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Head Pos.</p>
-        </div>
-        <p id="rPosture" class="text-3xl sm:text-5xl font-semibold text-white leading-none mb-1">--<span class="text-lg sm:text-2xl text-slate-400 font-normal">%</span></p>
-      </div>
-      <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 sm:p-5">
-        <div class="flex items-center gap-2 mb-2 sm:mb-3">
           <span id="eyeDot" class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"></span>
           <p class="text-slate-400 text-[10px] sm:text-xs font-medium uppercase tracking-wide">Eye Contact</p>
         </div>
@@ -166,9 +159,6 @@
     if (data.pace < 100) parts.push('speaking too slowly');
     else if (data.pace > 180) parts.push('speaking too fast');
     else if (data.pace > 0) parts.push('good pace');
-    if (data.postureScore < 60) parts.push('poor head position');
-    else if (data.postureScore < 80) parts.push('fair head position');
-    else if (data.postureScore > 0) parts.push('strong head position');
     if (data.eyeContactScore < 60) parts.push('limited eye contact');
     else if (data.eyeContactScore > 0) parts.push('good eye contact');
     if (data.smileScore < 40) parts.push('low facial expression');
@@ -198,12 +188,6 @@
   else dotColor(pDot, '#64748b');
 
   document.getElementById('rPace').textContent = data.pace + ' wpm';
-  document.getElementById('rPosture').textContent = data.postureScore + '%';
-  const poDot = document.getElementById('postureDot');
-  if (data.postureScore >= 80) dotColor(poDot, '#34d399');
-  else if (data.postureScore >= 60) dotColor(poDot, '#f59e0b');
-  else if (data.postureScore > 0) dotColor(poDot, '#ef4444');
-  else dotColor(poDot, '#64748b');
 
   // Eye Contact
   document.getElementById('rEyeContact').textContent = (data.eyeContactScore || 0) + '%';
