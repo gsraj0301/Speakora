@@ -22,7 +22,7 @@ const sessionState = {
   totalFrames: 0,
   smileFrames: 0,
   blinkCount: 0,
-  maxEyeOpenDist: 0,
+  maxEyeOpenDist: 0.02,
   lastBlinkState: false,
   baselineSmileDist: null,
   baselineBrowY: null,
@@ -429,11 +429,11 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
   stopStream();
 
   try {
-    await transcribeAndProcess();
-    sessionState.audioChunks = [];
-
     const seconds = sessionState.startTime ? Math.round((Date.now() - sessionState.startTime) / 1000) : 0;
     const minutes = sessionState.startTime ? (Date.now() - sessionState.startTime) / 60000 : 0;
+
+    await transcribeAndProcess();
+    sessionState.audioChunks = [];
 
     const eyeContactPct = sessionState.totalFrames > 0
       ? Math.round((sessionState.eyeContactFrames / sessionState.totalFrames) * 100) : 0;
