@@ -45,8 +45,27 @@ This ensures `data.tips` is never empty — the feedback panel always shows.
 
 Update model reference and prompt description.
 
+### 3. `deploy.py` — Mirror static files to `staticfiles/`
+
+PythonAnywhere serves static files from `STATIC_ROOT` (`staticfiles/`), but `deploy.py` only uploaded to `STATICFILES_DIRS` (`static/`). Old code was always served.
+
+**Fix**: After uploading each file under `static/`, also upload it to `staticfiles/` with the same relative path.
+
+### 4. `static/js/coach.js` — Duration fix
+
+`seconds`/`minutes` were calculated AFTER `await transcribeAndProcess()` (5-10s latency). Unnecessary LLM processing inflated session time.
+
+**Fix**: Capture `seconds`/`minutes` BEFORE any async calls.
+
+### 5. `static/js/coach.js` — Blink baseline fix
+
+`maxEyeOpenDist: 0` meant the first sampled frame set the baseline. If the eyes were partially closed, the 40% threshold was too low → blinks never detected.
+
+**Fix**: Initialize `maxEyeOpenDist: 0.02`.
+
 ## Files Changed
 
-- `core/views.py` — Coach endpoint (lines ~149-197)
-- `static/js/coach.js` — Fallback tip + `generateFallbackTip()` function
-- `AGENTS.md` — Model/prompt documentation
+- `core/views.py` — Coach endpoint (lines ~149-197, model switch + system prompt)
+- `static/js/coach.js` — Fallback tip (`generateFallbackTip()`), duration capture, blink baseline
+- `deploy.py` — Static files mirroring to `staticfiles/`
+- `AGENTS.md` — Batch 6/7/7b documentation
