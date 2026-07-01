@@ -146,9 +146,31 @@ def coach(request):
         body = json.loads(request.body)
     except (json.JSONDecodeError, ValueError):
         return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    prompt = f"""You are an expert presentation coach reviewing a student's practice session based on their transcript and delivery metrics.
 
-Session data:
+    system_prompt = """You are an expert presentation coach. A student has just finished a practice session and you have their transcript and delivery metrics. Give feedback that is SPECIFIC, CONCRETE, and ACTIONABLE based on their actual numbers.
+
+RULES:
+1. Every metric outside the ideal range MUST be addressed in the IMPROVE or TIP section.
+2. Never give generic advice like "practice in front of a mirror" or "practice more."
+3. Every TIP must be a concrete drill or technique the student can practice right now.
+4. Reference specific words or phrases from the transcript when possible.
+5. Be direct and honest — no sugarcoating.
+
+METRIC-SPECIFIC TECHNIQUES:
+- If eye contact < 60%: "Look at the camera lens itself. Place a sticker next to the lens and glance at it. For in-person conversations, looking at the bridge of their nose feels like eye contact to them."
+- If smile/facial expression < 40%: "Your face appears tense or neutral. Try a slight smile while speaking — it naturally warms your vocal tone and signals confidence to the audience. Practice with a pen held horizontally between your teeth."
+- If pace < 100 wpm: "Speaking too slowly loses audience attention. Use a metronome app at 120 BPM and pace one word per beat. Record yourself reading a paragraph within a strict time limit."
+- If pace > 180 wpm: "Rushing makes you sound anxious and harder to understand. Practice pausing at every comma and period for a full breath. Read aloud with a 1-2 second pause between sentences."
+- If filler count > 10: "Replace filler words with silence. Practice the 'pause drill' — every time you want to say 'um' or 'like,' stay silent instead. Record 2-minute answers to common questions and eliminate all fillers."
+- If blink rate > 20/min: "Frequent blinking signals nervousness. Practice intentional blinking at punctuation marks during reading exercises."
+- If blink rate < 5/min: "Low blink rate can make you look like you are staring. Try blinking naturally every 5-6 seconds to appear more relaxed."
+
+OUTPUT EXACTLY THIS FORMAT (3 lines total):
+STRENGTH: One specific thing they did well based on the transcript or metrics.
+IMPROVE: The single most important thing to fix this session.
+TIP: One concrete drill they can practice today."""
+
+    user_prompt = f"""Session data:
 - Transcript excerpt: "{body.get('transcript', '')[:500]}"
 - Filler words used: {body.get('filler_count', 0)} times
 - Speaking pace: {body.get('pace', 0)} wpm (ideal: 120-150 wpm)
@@ -157,33 +179,19 @@ Session data:
 - Blink rate: {body.get('blink_rate', 0)} blinks/min (typical: 10-20/min)
 - Mouth openness: {body.get('mouth_openness', 0)}
 
-Focus your feedback on: pace variation, use of pauses, tone, repeated words, filler word patterns, eye contact, facial expression, and articulation clarity.
+Analyze this session and give STRENGTH, IMPROVE, and TIP following the format."""
 
-Give feedback in exactly this structure:
-
-STRENGTH: One specific thing they did well based on the transcript or metrics.
-IMPROVE: The single most important thing to fix this session.
-TIP: One concrete drill they can practice today.
-
-Rules:
-- Be direct and honest.
-- Reference specific words or phrases from the transcript when possible.
-- If filler count > 10, that is the priority.
-- If pace < 100 or > 180, flag it and suggest a drill.
-- If eye contact < 60%, suggest a camera-sticker drill.
-- If expression < 40%, suggest practicing in front of a mirror.
-- TIP must be an actionable exercise (e.g., "Place a sticker next to your camera lens. Every time you look at it, you'll appear to make eye contact.").
-- Never repeat the same point across sections.
-- Total response: 3 concise lines, one per section heading."""
     resp = requests.post(
         'https://api.groq.com/openai/v1/chat/completions',
         headers={'Authorization': f'Bearer {settings.GROQ_API_KEY}', 'Content-Type': 'application/json'},
         json={
-            'model': 'openai/gpt-oss-120b',
-            'messages': [{'role': 'user', 'content': prompt}],
+            'model': 'llama-3.3-70b-versatile',
+            'messages': [
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
             'temperature': 0.7,
-            'max_completion_tokens': 2048,
-            'reasoning_effort': 'low'
+            'max_tokens': 1024
         },
         timeout=30
     )

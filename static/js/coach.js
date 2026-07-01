@@ -71,6 +71,20 @@ function updateTimer() {
   if (el) el.textContent = `${m}:${s}`;
 }
 
+function generateFallbackTip(data) {
+  const tips = [];
+  if (data.fillerCount > 10) tips.push(`You used "${data.fillerCount}" filler words. Try the pause drill — every time you want to say 'um' or 'like,' replace it with silence. Record a 2-minute answer and eliminate all fillers.`);
+  if (data.pace > 0 && data.pace < 100) tips.push(`Your pace was ${data.pace} wpm (slow). Use a metronome at 120 BPM — one word per beat. Reading aloud with a timer helps build speed.`);
+  if (data.pace > 180) tips.push(`Your pace was ${data.pace} wpm (fast). Pause at every comma and period for a full breath. Read aloud with 1-2s pauses between sentences.`);
+  if (data.eyeContactScore < 60) tips.push(`Eye contact was ${data.eyeContactScore}%. Look at the camera lens. Place a sticker next to it to remind you. In person, look at the bridge of their nose — it feels like eye contact to them.`);
+  if (data.smileScore < 40) tips.push(`You smiled only ${data.smileScore}% of the time. A slight smile warms your tone and signals confidence. Try it while speaking.`);
+  if (data.blinkRate > 20) tips.push(`Your blink rate was ${data.blinkRate}/min (high). Practice intentional blinking at punctuation marks during reading.`);
+  if (data.blinkRate > 0 && data.blinkRate < 5) tips.push(`Your blink rate was low (${data.blinkRate}/min). Try blinking naturally every 5-6 seconds to avoid staring.`);
+  if (tips.length > 0) return tips.slice(0, 2).join(' ');
+  if (data.pace > 0 || data.eyeContactScore > 0) return 'Your delivery looks solid. Focus on varying your vocal tone and adding deliberate pauses between key points for more impact.';
+  return 'Practice with clear enunciation and keep your chin up. Record yourself and listen back to identify areas to improve.';
+}
+
 function getCSRF() {
   const c = document.cookie.match(/csrftoken=([^;]+)/);
   return c ? c[1] : '';
@@ -478,6 +492,16 @@ document.getElementById('getFeedbackBtn').addEventListener('click', async () => 
       } catch (e) {
         console.error('Coach error:', e);
       }
+    }
+
+    if (sessionState.coachingTips.length === 0) {
+      sessionState.coachingTips.push(generateFallbackTip({
+        fillerCount: sessionState.fillerCount,
+        pace: minutes > 0 ? Math.round(sessionState.wordCount / minutes) : 0,
+        eyeContactScore: eyeContactPct,
+        smileScore: smilePct,
+        blinkRate: blinksPerMin
+      }));
     }
 
     const payload = {
